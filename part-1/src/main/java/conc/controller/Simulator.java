@@ -8,9 +8,6 @@ import conc.model.monitor.StartSync;
 import conc.model.monitor.StartSyncImpl;
 import conc.model.monitor.StopFlag;
 import conc.model.monitor.StopFlagImpl;
-import conc.model.task.CheckBoundaryTask;
-import conc.model.task.ComputeAndUpdateVelocityTask;
-import conc.model.task.UpdatePosTask;
 import conc.view.SimulationView;
 
 import java.util.ArrayList;
@@ -54,8 +51,8 @@ public class Simulator {
 			var results = new ArrayList<Future<Body>>();
 
 			bodies.forEach(body -> {
-				var res = exec.submit(new ComputeAndUpdateVelocityTask(bodies, body, dt));
-				results.add(res);
+				//var res = exec.submit(new ComputeAndUpdateVelocityTask(bodies, body, dt));
+				//results.add(res);
 			});
 
 			var step = new ArrayList<Body>();
@@ -71,8 +68,8 @@ public class Simulator {
 			results.clear();
 
 			bodies.forEach(body -> {
-				var res = exec.submit(new UpdatePosTask(body, dt));
-				results.add(res);
+				//var res = exec.submit(new UpdatePosTask(body, dt));
+				//results.add(res);
 			});
 
 			step.clear();
@@ -88,8 +85,8 @@ public class Simulator {
 			results.clear();
 
 			bodies.forEach(body -> {
-				var res = exec.submit(new CheckBoundaryTask(body, bounds));
-				results.add(res);
+				//var res = exec.submit(new CheckBoundaryTask(body, bounds));
+				//results.add(res);
 			});
 
 			step.clear();
