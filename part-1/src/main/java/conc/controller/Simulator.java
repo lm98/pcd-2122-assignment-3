@@ -1,5 +1,6 @@
 package conc.controller;
 
+import actor.BodyActor;
 import conc.model.Body;
 import conc.model.Boundary;
 import conc.model.P2d;
@@ -8,10 +9,8 @@ import conc.model.monitor.StartSync;
 import conc.model.monitor.StartSyncImpl;
 import conc.model.monitor.StopFlag;
 import conc.model.monitor.StopFlagImpl;
-import conc.model.task.CheckBoundaryTask;
-import conc.model.task.ComputeAndUpdateVelocityTask;
-import conc.model.task.UpdatePosTask;
 import conc.view.SimulationView;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +22,7 @@ public class Simulator {
 	private ArrayList<Body> bodies;
 	/* boundary of the field */
 	private Boundary bounds;
+//	private BodyActor tasks;
 
 	private final int nBodies, nSteps, nWorkers;
 
@@ -45,72 +45,72 @@ public class Simulator {
 		var vt = 0.0;
 		var dt = 0.001;
 		var iter = 0;
-		var exec = Executors.newFixedThreadPool(nWorkers);
+//		var exec = Executors.newFixedThreadPool(nWorkers);
 
 		sync.waitStart();
 
-		while(iter < nSteps){
-
-			var results = new ArrayList<Future<Body>>();
-
-			bodies.forEach(body -> {
-				var res = exec.submit(new ComputeAndUpdateVelocityTask(bodies, body, dt));
-				results.add(res);
-			});
-
-			var step = new ArrayList<Body>();
-			results.forEach(bodyFuture -> {
-				try {
-					step.add(bodyFuture.get());
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			});
-
-			bodies = step;
-			results.clear();
-
-			bodies.forEach(body -> {
-				var res = exec.submit(new UpdatePosTask(body, dt));
-				results.add(res);
-			});
-
-			step.clear();
-			results.forEach(bodyFuture -> {
-				try {
-					step.add(bodyFuture.get());
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			});
-
-			bodies = step;
-			results.clear();
-
-			bodies.forEach(body -> {
-				var res = exec.submit(new CheckBoundaryTask(body, bounds));
-				results.add(res);
-			});
-
-			step.clear();
-			results.forEach(bodyFuture -> {
-				try {
-					step.add(bodyFuture.get());
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			});
-
-			bodies = step;
-			results.clear();
-
-			vt = vt + dt;
-			iter++;
-
-			if(!flag.isSet()){
-				viewer.display(bodies, vt, iter, bounds);
-			}
-		}
+//		while(iter < nSteps){
+//
+//			var results = new ArrayList<Future<Body>>();
+//
+//			bodies.forEach(body -> {
+//				var res = exec.submit(new ComputeAndUpdateVelocityTask(bodies, body, dt));
+//				results.add(res);
+//			});
+//
+//			var step = new ArrayList<Body>();
+//			results.forEach(bodyFuture -> {
+//				try {
+//					step.add(bodyFuture.get());
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//				}
+//			});
+//
+//			bodies = step;
+//			results.clear();
+//
+//			bodies.forEach(body -> {
+//				var res = exec.submit(new UpdatePosTask(body, dt));
+//				results.add(res);
+//			});
+//
+//			step.clear();
+//			results.forEach(bodyFuture -> {
+//				try {
+//					step.add(bodyFuture.get());
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//				}
+//			});
+//
+//			bodies = step;
+//			results.clear();
+//
+//			bodies.forEach(body -> {
+//				var res = exec.submit(new CheckBoundaryTask(body, bounds));
+//				results.add(res);
+//			});
+//
+//			step.clear();
+//			results.forEach(bodyFuture -> {
+//				try {
+//					step.add(bodyFuture.get());
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//				}
+//			});
+//
+//			bodies = step;
+//			results.clear();
+//
+//			vt = vt + dt;
+//			iter++;
+//
+//			if(!flag.isSet()){
+//				viewer.display(bodies, vt, iter, bounds);
+//			}
+//		}
 	}
 
 	private void testWithNumBodies() {

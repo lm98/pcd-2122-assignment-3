@@ -1,7 +1,5 @@
 package controller
 
-import conc.controller.Simulator
-
 object SimulationMain:
   @main def startSim =
     new Simulator(
