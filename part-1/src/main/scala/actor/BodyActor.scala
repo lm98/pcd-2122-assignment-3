@@ -47,23 +47,14 @@ object BodyActor:
 
 object BodyRender:
   import BodyActor.*
-  final case class Render(pos: P2d, vel: V2d, id: ActorRef[_])
-  val Service = ServiceKey[Render]("RenderService")
+  final case class Render(bodies: List[String])
   def apply(): Behavior[Render] = Behaviors.receive { (context, message) =>
-    context.log.info("received body with id {}", message.id)
+    context.log.info("received body with id {}", message.bodies)
     Behaviors.same
   }
 
 object InteractionPattern extends App:
   import BodyActor.*
 
-  val system = ActorSystem(
-    Behaviors.setup[BodyActor.Task] { ctx =>
-      val render = ctx.spawn(BodyRender(), "bodyrender")
-      given Timeout = 2.seconds
-      given Scheduler = ctx.system.scheduler
-      given ExecutionContext = ctx.executionContext
-      val f: Future[BodyActor.Task] = render ? (task => BodyRender.Render())
-    },
-    name = "render-body"
-  )
+  val system = ActorSystem(BodyRender(), "stringa-ciao")
+  system ! BodyRender.Render(List("Ciao", "mare"))

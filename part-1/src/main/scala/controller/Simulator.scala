@@ -15,10 +15,11 @@ import scala.concurrent.Future
 class Simulator(val nBodies: Int, val nSteps: Int, val nWorkers: Int):
   val bounds: Boundary = new Boundary(-4.0, -4.0, 4.0, 4.0)
   val rand = new Random(System.currentTimeMillis)
-  /*val bodies: mutable.Seq[Body] = for i <- 0 until nBodies yield
+  val bodies= for i <- 0 until nBodies yield
       val x: Double = bounds.getX0 * 0.25 + rand.nextDouble * (bounds.getX1 - bounds.getX0) * 0.25
       val y: Double = bounds.getY0 * 0.25 + rand.nextDouble * (bounds.getY1 - bounds.getY0) * 0.25
-      new Body(i, new P2d(x, y), new V2d(0, 0), 10)*/
+      new Body(i, new P2d(x, y), new V2d(0, 0), 10)
+  val list = bodies.toList
 
   def execute(): Unit =
     /** SETUP **/

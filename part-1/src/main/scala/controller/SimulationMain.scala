@@ -2,6 +2,7 @@ package controller
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import view.ViewActor
+import conc.controller.Simulator
 
 object SimulationMain:
   @main def startSim =
