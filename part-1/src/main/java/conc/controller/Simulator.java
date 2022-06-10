@@ -1,3 +1,4 @@
+/*
 package conc.controller;
 
 import conc.model.Body;
@@ -16,9 +17,13 @@ import java.util.Random;
 import java.util.concurrent.*;
 
 public class Simulator {
-	/* bodies in the field */
+	*/
+/* bodies in the field *//*
+
 	private ArrayList<Body> bodies;
-	/* boundary of the field */
+	*/
+/* boundary of the field *//*
+
 	private Boundary bounds;
 
 	private final int nBodies, nSteps, nWorkers;
@@ -31,14 +36,18 @@ public class Simulator {
 	}
 	
 	public void execute() {
-		/** SETUP **/
+		*/
+/** SETUP **//*
+
 		StartSync sync = new StartSyncImpl();
 		StopFlag flag = new StopFlagImpl();
 		Controller controller = new Controller(sync, flag);
 		SimulationView viewer = new SimulationView(620,620);
 		viewer.registerListener(controller);
 
-		/** EXECUTE **/
+		*/
+/** EXECUTE **//*
+
 		var vt = 0.0;
 		var dt = 0.001;
 		var iter = 0;
@@ -123,3 +132,4 @@ public class Simulator {
 		}
 	}
 }
+*/
