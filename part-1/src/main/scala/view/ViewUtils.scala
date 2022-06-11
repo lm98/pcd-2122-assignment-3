@@ -10,10 +10,11 @@ trait ViewUtils:
   def stopSimulation(): Unit
   def bounds: Boundary
 
-object ViewUtils:
-  def apply(viewActor: ActorRef[ViewCommands], bounds: Boundary, w: Int, h: Int): ViewUtils =
-    ViewUtilsImpl(viewActor, bounds, w, h)
+export ViewUtils.*
 
-private class ViewUtilsImpl(viewActor: ActorRef[ViewCommands],val bounds: Boundary, val w: Int, val h: Int) extends ViewUtils:
-  override def startSimulation(): Unit = viewActor ! Start
-  override def stopSimulation(): Unit = viewActor ! Stop
+object ViewUtils:
+  def apply(viewActor: ActorRef[ViewCommands], bounds: Boundary, w: Int, h: Int): ViewUtils = ViewUtilsImpl(viewActor, bounds, w, h)
+
+  private class ViewUtilsImpl(viewActor: ActorRef[ViewCommands],val bounds: Boundary, val w: Int, val h: Int) extends ViewUtils:
+    override def startSimulation(): Unit = viewActor ! Start
+    override def stopSimulation(): Unit = viewActor ! Stop

@@ -1,8 +1,10 @@
 package view
 
-import model.*
 import view.SimulationView
+import view.ViewUtils
 import com.sun.java.accessibility.util.AWTEventMonitor.{addKeyListener, addWindowListener}
+import model.Body
+import model.Boundary
 import model.Objects2d.P2d
 
 import java.awt.event.{ActionListener, KeyEvent, KeyListener, WindowAdapter, WindowEvent}
@@ -57,7 +59,7 @@ end ControlPanel
 
 
 sealed class VisualiserPanel(w: Int, h: Int, bound: Boundary) extends Panel, KeyListener:
-  var bodies: List[Body]
+  var bodies: List[Body] = List()
   var nIter: Int = 0
   var vt: Double = 0
   var scale: Double = 1
