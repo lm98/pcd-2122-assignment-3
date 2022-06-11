@@ -4,7 +4,7 @@ import akka.actor.typed.ActorRef
 import conc.controller.Controller
 import conc.model.monitor.{StartSync, StartSyncImpl, StopFlag, StopFlagImpl}
 import conc.model.{Body, Boundary, P2d, V2d}
-import view.{SimulationView, ViewUtils}
+import view.{SimulationView}
 import view.ViewActor.ViewCommands
 import java.util
 import java.util.{ArrayList, Random}

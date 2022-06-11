@@ -1,12 +1,11 @@
 package view
 
 import view.SimulationView
-import view.ViewUtils
 import com.sun.java.accessibility.util.AWTEventMonitor.{addKeyListener, addWindowListener}
 import model.Body
 import model.Boundary
 import model.Objects2d.P2d
-
+import view.ViewActor
 import java.awt.event.{ActionListener, KeyEvent, KeyListener, WindowAdapter, WindowEvent}
 import java.awt.{BorderLayout, Dimension, Graphics2D, RenderingHints}
 import javax.swing.SwingUtilities
@@ -15,7 +14,7 @@ import scala.swing.*
 import scala.swing.BorderPanel.Position.*
 import scala.swing.event.ButtonClicked
 
-class SimulationView(view: ViewUtils, w: Int, h: Int) extends Frame:
+class SimulationView(view: ViewActor, w: Int, h: Int) extends Frame:
   val visualiserPanel = new VisualiserPanel(w,h, view.bounds)
   size = Dimension(w + 100, h + 100)
   title = "Bodies simulation"
@@ -36,7 +35,7 @@ class SimulationView(view: ViewUtils, w: Int, h: Int) extends Frame:
     )
 end SimulationView
 
-sealed class ControlPanel(view: ViewUtils) extends FlowPanel:
+sealed class ControlPanel(view: ViewActor) extends FlowPanel:
   val start: Button = new Button("start"){
     reactions += {
       case event.ButtonClicked(_) =>
