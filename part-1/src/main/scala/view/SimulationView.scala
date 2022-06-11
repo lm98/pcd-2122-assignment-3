@@ -99,10 +99,12 @@ sealed class VisualiserPanel(w: Int, h: Int, bound: Boundary) extends Panel, Key
     this.vt = v
     this.nIter = iter.toInt
 
-  override def keyPressed(e: KeyEvent): Unit = ???
-  override def keyTyped(e: KeyEvent): Unit = ???
-  override def keyReleased(e: KeyEvent): Unit = ???
-  def updateScale(k: Double): Unit = scale *= k
-//  def keyUp(e: KeyEvent): Unit = scale *= 1.1
-//  def keyDown(e: KeyEvent): Unit = scale *= 0.9
+  override def keyPressed(e: KeyEvent): Unit = e.getKeyCode match
+    case KeyEvent.VK_UP => updateScale(1.1)
+    case KeyEvent.VK_DOWN => updateScale(0.9)
+
+  override def keyTyped(e: KeyEvent): Unit = {}
+  override def keyReleased(e: KeyEvent): Unit = {}
+  private def updateScale(k: Double): Unit = scale *= k
+
 end VisualiserPanel
