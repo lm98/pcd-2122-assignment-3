@@ -1,8 +1,9 @@
 package controller
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import actor.MasterActor
+import akka.actor.typed.ActorSystem
 import view.ViewActor
 import controller.Simulator
 
-object SimulationMain:
-  @main def startSim = ??? //setup behavior, then spawn viewactor
+object SimulationMain extends App:
+  ActorSystem(MasterActor(), "root")
