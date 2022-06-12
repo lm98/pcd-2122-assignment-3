@@ -1,15 +1,9 @@
 package controller
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import actor.MasterActor
+import akka.actor.typed.ActorSystem
 import view.ViewActor
-import conc.controller.Simulator
+import controller.Simulator
 
-object SimulationMain:
-  @main def startSim =
-    val system: ActorSystem = ActorSystem.create("GUIsystem")
-//    var act: ActorRef = system.actorOf()
-    new Simulator(
-      2,
-      5000,
-      Runtime.getRuntime.availableProcessors + 1
-    ).execute()
+object SimulationMain extends App:
+  ActorSystem(MasterActor(), "root")

@@ -1,11 +1,11 @@
 package controller
 
+import akka.actor.typed.ActorRef
 import conc.controller.Controller
 import conc.model.monitor.{StartSync, StartSyncImpl, StopFlag, StopFlagImpl}
 import conc.model.{Body, Boundary, P2d, V2d}
-//import conc.view.SimulationView
-//import actor.BodyActor
-
+import view.{SimulationView}
+import view.ViewActor.ViewCommands
 import java.util
 import java.util.{ArrayList, Random}
 import scala.collection.mutable
@@ -20,6 +20,8 @@ class Simulator(val nBodies: Int, val nSteps: Int, val nWorkers: Int):
       val y: Double = bounds.getY0 * 0.25 + rand.nextDouble * (bounds.getY1 - bounds.getY0) * 0.25
       new Body(i, new P2d(x, y), new V2d(0, 0), 10)
   val list = bodies.toList
+  val height = 620
+  val width = 620
 
   def execute(): Unit =
     /** SETUP **/
@@ -32,6 +34,7 @@ class Simulator(val nBodies: Int, val nSteps: Int, val nWorkers: Int):
 
     var vt = 0.0
     var dt = 0.001
+//    var viewer = new SimulationView(utils, height, width)
 //    var iter = 0
 //    var bodyActor = BodyActor(bodies, b)
     
