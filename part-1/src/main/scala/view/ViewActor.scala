@@ -4,49 +4,32 @@ import akka.actor.AbstractActor
 import model.{Body, Boundary}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
+import controller.Simulator
+import actor.SlaveActor
 import view.ViewActor.ViewCommands
 
 import java.awt.{BorderLayout, Component, FlowLayout}
 import scala.language.{existentials, postfixOps}
 
-trait ViewActor:
-  def startSimulation(): Unit
-  def stopSimulation(): Unit
-  def updateView(): Unit //TODO bodies as parameter??
-  def bounds: Boundary
-
 object ViewActor:
-
   enum ViewCommands:
     case Start
     case Stop
     case Update
 
-  export ViewCommands.*
-
-  def apply(actorRef: ActorRef[ViewActor], bounds: Boundary, w: Int, h: Int): Behavior[ViewCommands] =
+  def apply(bounds: Boundary, w: Int, h: Int): Behavior[ViewCommands] =
     Behaviors.setup( ctx =>
-      val viewActor = new ViewActorImpl(ctx.self, bounds)
-      val simulationGui = new SimulationView(viewActor, w, h)
-
+      val simulationGui = new SimulationView(w, h, bounds)
+      val slaveActor = SlaveActor()
       Behaviors.receiveMessage( msg => msg match
-        case Start =>
-          viewActor.startSimulation()
+        case ViewCommands.Start =>
+          val simulation = new Simulator(100, 100, 2) //todo pass args
           Behaviors.same
-        case Stop =>
-          viewActor.stopSimulation()
+        case ViewCommands.Stop =>
+          //stop simulation
           Behaviors.same
-        case Update =>
+        case ViewCommands.Update =>
 //          simulationGui.display()
-          viewActor.updateView()
           Behaviors.same
         )
     )
-
-class ViewActorImpl(actorRef: ActorRef[ViewCommands], override val bounds: Boundary) extends ViewActor:
-  override def startSimulation(): Unit = actorRef ! ViewCommands.Start
-
-  override def stopSimulation(): Unit = actorRef ! ViewCommands.Stop
-
-  override def updateView(): Unit = actorRef ! ViewCommands.Update
-

@@ -14,13 +14,13 @@ import scala.swing.*
 import scala.swing.BorderPanel.Position.*
 import scala.swing.event.ButtonClicked
 
-class SimulationView(view: ViewActor, w: Int, h: Int) extends Frame:
-  val visualiserPanel = new VisualiserPanel(w,h, view.bounds)
+class SimulationView(w: Int, h: Int, bounds: Boundary) extends Frame:
+  val visualiserPanel = new VisualiserPanel(w,h, bounds)
   size = Dimension(w + 100, h + 100)
   title = "Bodies simulation"
   resizable = false
   contents = new BorderPanel{
-    layout(ControlPanel(view)) = North
+    layout(ControlPanel()) = North
     layout(visualiserPanel) = Center
   }
   visible = true
@@ -28,20 +28,20 @@ class SimulationView(view: ViewActor, w: Int, h: Int) extends Frame:
     override def windowClosing(ev: WindowEvent): Unit = System.exit(-1)
     override def windowClosed(ev: WindowEvent): Unit = System.exit(-1)
   })
-  def display(bodies: List[Body], vt: Double, iter: Long, bounds: Boundary): Unit = //todo add here actor?
+  def display(bodies: List[Body], vt: Double, iter: Long): Unit = //todo add here actor?
     SwingUtilities.invokeLater(() =>
       visualiserPanel display(bodies, vt, iter)
       repaint()
     )
 end SimulationView
 
-sealed class ControlPanel(view: ViewActor) extends FlowPanel:
+sealed class ControlPanel extends FlowPanel:
   val start: Button = new Button("start"){
     reactions += {
       case event.ButtonClicked(_) =>
         enabled = false
         stop.enabled = true
-        view.startSimulation()
+        //startSimulation()
     }
   }
   val stop: Button = new Button("stop"){
@@ -49,7 +49,7 @@ sealed class ControlPanel(view: ViewActor) extends FlowPanel:
       case event.ButtonClicked(_) =>
         enabled = false
         start.enabled = true
-        view.stopSimulation()
+        //stopSimulation()
     }
   }
   contents += start
