@@ -1,27 +1,24 @@
 package actor
 
-
-import actor.BodyActor.computeTotalForceOnBody
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior, Scheduler}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.scaladsl.AskPattern.Askable
 import akka.util.Timeout
 import conc.model.{Body, Boundary, V2d}
 import jdk.javadoc.doclet.Reporter
-
 import concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 
-case class Request(info: RequestBody, replyTo: ActorRef[Response])
+case class Request(info: RequestInfo, replyTo: ActorRef[Response])
 
-enum RequestBody:
+enum RequestInfo:
   case UpdateVelocity(body: Body, others: List[Body], dt: Double)
   case UpdatePosition(body: Body, dt: Double)
   case CheckBoundary(body: Body, boundary: Boundary)
 
 case class Response(body: Body)
 
-import actor.RequestBody.*
+import actor.RequestInfo.*
 
 object SimulatorActor:
   val dt = 0.001
@@ -30,22 +27,8 @@ object SimulatorActor:
   def apply(bodies: List[Body],vt: Double = 0.00, i: Int): Behavior[Response] =
     Behaviors setup { ctx =>
       val master = ctx.spawnAnonymous(MasterActor())
-      given Timeout = 2.seconds
-      given Scheduler = ctx.system.scheduler
-      given ExecutionContext = ctx.executionContext
-      //Update velocities
-      val futureV = Future.sequence(bodies.map(b => master ? (replyTo => Request(UpdateVelocity(b, bodies, dt), replyTo))))
-      val updateV = Await.result(futureV, 2.seconds).map(r => r match
-        case Response(body) => body)
-      //Update positions
-      val futureP = Future.sequence(updateV.map(b => master ? (replyTo => Request(UpdatePosition(b, dt), replyTo))))
-      val updateP = Await.result(futureP, 2.seconds).map(r => r match
-        case Response(body) => body)
-      //Check Boundaries
-      val futureC = Future.sequence(updateP.map(b => master ? (replyTo => Request(CheckBoundary(b, bounds), replyTo))))
-      val updateC = Await.result(futureC, 2.seconds).map(r => r match
-        case Response(body) => body)
-      SimulatorActor(updateC, vt + dt, i + 1)
+      bodies.foreach(b => master ! Request(UpdateVelocity(b, bodies, dt), ctx.self))
+      SimulatorActor(bodies, vt + dt, i + 1)
     }
 
 object MasterActor:
