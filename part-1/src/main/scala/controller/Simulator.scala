@@ -3,9 +3,11 @@ package controller
 import akka.actor.typed.ActorRef
 import conc.controller.Controller
 import conc.model.monitor.{StartSync, StartSyncImpl, StopFlag, StopFlagImpl}
-import conc.model.{Body, Boundary, P2d, V2d}
-import view.{SimulationView}
+import model.Objects2d.*
+import model.{Body, Boundary}
+import view.SimulationView
 import view.ViewActor.ViewCommands
+
 import java.util
 import java.util.{ArrayList, Random}
 import scala.collection.mutable
@@ -13,12 +15,12 @@ import scala.collection.mutable.Seq
 import scala.concurrent.Future
 
 class Simulator(val nBodies: Int, val nSteps: Int, val nWorkers: Int):
-  val bounds: Boundary = new Boundary(-4.0, -4.0, 4.0, 4.0)
+  val bounds = Boundary(-4.0, -4.0, 4.0, 4.0)
   val rand = new Random(System.currentTimeMillis)
   val bodies= for i <- 0 until nBodies yield
-      val x: Double = bounds.getX0 * 0.25 + rand.nextDouble * (bounds.getX1 - bounds.getX0) * 0.25
-      val y: Double = bounds.getY0 * 0.25 + rand.nextDouble * (bounds.getY1 - bounds.getY0) * 0.25
-      new Body(i, new P2d(x, y), new V2d(0, 0), 10)
+      val x: Double = bounds.x0 * 0.25 + rand.nextDouble * (bounds.x1 - bounds.x0) * 0.25
+      val y: Double = bounds.y0 * 0.25 + rand.nextDouble * (bounds.x1 - bounds.y0) * 0.25
+      Body(i, P2d(x, y), V2d(0, 0), 10)
   val list = bodies.toList
   val height = 620
   val width = 620
