@@ -8,6 +8,7 @@ import akka.util.Timeout
 import jdk.javadoc.doclet.Reporter
 import model.Objects2d.V2d
 import model.{Body, Boundary}
+import view.ViewActor
 
 import concurrent.duration.DurationInt
 import scala.concurrent.{Await, ExecutionContext, Future, Promise, blocking}
@@ -24,27 +25,32 @@ import Task.*
 object SimulatorActor:
   sealed trait Commands
   case class Start() extends Commands
+  case class Stop() extends Commands
   case class Update(info: Task, bodies: List[Body]) extends Commands
 
   val dt = 0.001
 
-  def apply(bodies: List[Body],vt: Double = 0.00, i: Int, maxIterations: Int): Behavior[Commands] =
-    Behaviors receive { (ctx, msg) => msg match
-      case _ if i == maxIterations => Behaviors.stopped
-      case Start() =>
-        val master = ctx.spawnAnonymous(MasterActor(List(), bodies.size, ctx.self))
-        bodies.foreach(b => master ! MasterActor.Request(UpdateVelocity(b, bodies, dt)))
-        Behaviors.same
-      case Update(UpdateVelocity(_,_,_), updatedBodies) =>
-        val master = ctx.spawnAnonymous(MasterActor(List(), bodies.size, ctx.self))
-        updatedBodies.foreach(b => master ! MasterActor.Request(UpdatePosition(b, dt)))
-        SimulatorActor(updatedBodies, vt, i, maxIterations)
-      case Update(UpdatePosition(_,_), updatedBodies) =>
-        val master = ctx.spawnAnonymous(MasterActor(List(), bodies.size, ctx.self))
-        val bounds = Boundary(-4.00, -4.00, 4.00, 4.00)
-        updatedBodies.foreach(b => master ! MasterActor.Request(CheckBoundary(b, bounds)))
-        SimulatorActor(updatedBodies, vt, i, maxIterations)
-      case Update(CheckBoundary(_,_), updatedBodies) => SimulatorActor(updatedBodies, vt + dt, i + 1, maxIterations)
+  def apply(bodies: List[Body], maxIterations: Long, bounds: Boundary, vt: Double = 0.00, i: Int = 0): Behavior[Commands] =
+    Behaviors setup { ctx =>
+      ctx.log.debug("SimulatorActor: setup")
+      val master = ctx.spawnAnonymous(MasterActor(List(), bodies.size, ctx.self))
+      Behaviors receive { (ctx, msg) => msg match
+        case Start() =>
+          ctx.log.debug(s"Starting iteration #$i")
+          bodies.foreach(b => master ! MasterActor.Request(UpdateVelocity(b, bodies, dt)))
+          Behaviors.same
+        case Stop() => Behaviors.stopped
+        case Update(UpdateVelocity(_,_,_), updatedBodies) =>
+          updatedBodies.foreach(b => master ! MasterActor.Request(UpdatePosition(b, dt)))
+          SimulatorActor(updatedBodies, maxIterations, bounds, vt, i)
+        case Update(UpdatePosition(_,_), updatedBodies) =>
+          updatedBodies.foreach(b => master ! MasterActor.Request(CheckBoundary(b, bounds)))
+          SimulatorActor(updatedBodies, maxIterations, bounds, vt, i)
+        case Update(CheckBoundary(_,_), updatedBodies) =>
+          //viewActor ! ViewActor.ViewCommands.UpdateView(updatedBodies, vt, i)
+          ctx.log.debug(s"Iteration #$i: bodies: $updatedBodies")
+          SimulatorActor(updatedBodies, maxIterations, bounds, vt + dt, i + 1)
+      }
     }
 
 object MasterActor:
@@ -58,7 +64,7 @@ object MasterActor:
         ctx.spawnAnonymous(SlaveActor()) ! SlaveActor.Request(info, ctx.self) ; Behaviors.same
       case Update(info, result) => bodies.size match
         case _ if bodies.size < nBodies => MasterActor(bodies :+ result, nBodies, replyTo)
-        case _ if bodies.size == nBodies - 1 => replyTo ! SimulatorActor.Update(info, bodies) ; Behaviors.stopped
+        case _ if bodies.size == nBodies => replyTo ! SimulatorActor.Update(info, bodies) ; Behaviors.stopped
     }
 
 object SlaveActor:

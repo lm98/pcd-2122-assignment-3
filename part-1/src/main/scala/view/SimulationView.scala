@@ -1,11 +1,12 @@
 package view
 
+import akka.actor.typed.ActorRef
 import view.SimulationView
 import com.sun.java.accessibility.util.AWTEventMonitor.{addKeyListener, addWindowListener}
 import model.Body
 import model.Boundary
 import model.Objects2d.P2d
-import view.ViewActor
+
 import java.awt.event.{ActionListener, KeyEvent, KeyListener, WindowAdapter, WindowEvent}
 import java.awt.{BorderLayout, Dimension, Graphics2D, RenderingHints}
 import javax.swing.SwingUtilities
@@ -13,14 +14,15 @@ import scala.language.postfixOps
 import scala.swing.*
 import scala.swing.BorderPanel.Position.*
 import scala.swing.event.ButtonClicked
+import view.ViewActor
 
-class SimulationView(w: Int, h: Int, bounds: Boundary) extends Frame:
+class SimulationView(bounds: Boundary, viewActor: ActorRef[ViewActor.ViewCommands], w: Int = 620, h: Int = 620) extends Frame:
   val visualiserPanel = new VisualiserPanel(w,h, bounds)
   size = Dimension(w + 100, h + 100)
   title = "Bodies simulation"
   resizable = false
   contents = new BorderPanel{
-    layout(ControlPanel()) = North
+    layout(new ControlPanel()) = North
     layout(visualiserPanel) = Center
   }
   visible = true
@@ -33,77 +35,77 @@ class SimulationView(w: Int, h: Int, bounds: Boundary) extends Frame:
       visualiserPanel display(bodies, vt, iter)
       repaint()
     )
-end SimulationView
 
-sealed class ControlPanel extends FlowPanel:
-  val start: Button = new Button("start"){
-    reactions += {
-      case event.ButtonClicked(_) =>
-        enabled = false
-        stop.enabled = true
-        //startSimulation()
+  class ControlPanel extends FlowPanel:
+    val start: Button = new Button("start"){
+      reactions += {
+        case event.ButtonClicked(_) =>
+          enabled = false
+          stop.enabled = true
+          startSimulation()
+      }
     }
-  }
-  val stop: Button = new Button("stop"){
-    reactions += {
-      case event.ButtonClicked(_) =>
-        enabled = false
-        start.enabled = true
-        //stopSimulation()
+    val stop: Button = new Button("stop"){
+      reactions += {
+        case event.ButtonClicked(_) =>
+          enabled = false
+          start.enabled = true
+          stopSimulation()
+      }
     }
-  }
-  contents += start
-  contents += stop
-end ControlPanel
+    contents += start
+    contents += stop
+
+    def startSimulation(): Unit = println("View: starting simulation") ; viewActor ! ViewActor.ViewCommands.Start
+    def stopSimulation(): Unit = viewActor ! ViewActor.ViewCommands.Stop
 
 
-sealed class VisualiserPanel(w: Int, h: Int, bound: Boundary) extends Panel, KeyListener:
-  var bodies: List[Body] = List()
-  var nIter: Int = 0
-  var vt: Double = 0
-  var scale: Double = 1
-  val dx: Long = w/2 -20
-  val dy: Long = h/2 -20
+  class VisualiserPanel(w: Int, h: Int, bound: Boundary) extends Panel, KeyListener:
+    var bodies: List[Body] = List()
+    var nIter: Int = 0
+    var vt: Double = 0
+    var scale: Double = 1
+    val dx: Long = w/2 -20
+    val dy: Long = h/2 -20
 
-  preferredSize = Dimension(w,h)
+    preferredSize = Dimension(w,h)
 
-  override def paint(g: Graphics2D): Unit =
-    if bodies.nonEmpty then
-      val g2: Graphics2D = g
-      g2 setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-      g2 setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
-      g2 clearRect(0, 0, w, h)
+    override def paint(g: Graphics2D): Unit =
+      if bodies.nonEmpty then
+        val g2: Graphics2D = g
+        g2 setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+        g2 setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
+        g2 clearRect(0, 0, w, h)
 
-      val x0 = getXCoord(bound.x0)
-      val y0 = getYCoord(bound.y0)
-      val wd = getXCoord(bound.x1) - x0
-      val ht = y0 - getYCoord(bound.y1)
+        val x0 = getXCoord(bound.x0)
+        val y0 = getYCoord(bound.y0)
+        val wd = getXCoord(bound.x1) - x0
+        val ht = y0 - getYCoord(bound.y1)
 
-      g2 drawRect(x0, y0 - ht, wd, ht)
+        g2 drawRect(x0, y0 - ht, wd, ht)
 
-      bodies.foreach( b =>
-        val p: P2d = b.pos
-        var radius: Int = (10 * scale).toInt
-        if radius < 1 then radius = 1
-        g2 drawOval(getXCoord(p.x), getYCoord(p.y), radius, radius)
-      )
-      val time: String = String format("%.2f", vt)
-      g2 drawString("Bodies: " + bodies.length + " - vt: " + time + " - nIter: " + nIter + " (UP for zoom in, DOWN for zoom out)", 2, 20)
+        bodies.foreach( b =>
+          val p: P2d = b.pos
+          var radius: Int = (10 * scale).toInt
+          if radius < 1 then radius = 1
+          g2 drawOval(getXCoord(p.x), getYCoord(p.y), radius, radius)
+        )
+        val time: String = String format("%.2f", vt)
+        g2 drawString("Bodies: " + bodies.length + " - vt: " + time + " - nIter: " + nIter + " (UP for zoom in, DOWN for zoom out)", 2, 20)
 
-  def getXCoord(x: Double): Int = (dx + (x * dx * scale)).toInt
-  def getYCoord(y: Double): Int = (dy - (y * dy * scale)).toInt
+    def getXCoord(x: Double): Int = (dx + (x * dx * scale)).toInt
+    def getYCoord(y: Double): Int = (dy - (y * dy * scale)).toInt
 
-  def display(b: List[Body], v: Double, iter: Long): Unit =
-    this.bodies = b
-    this.vt = v
-    this.nIter = iter.toInt
+    def display(b: List[Body], v: Double, iter: Long): Unit =
+      this.bodies = b
+      this.vt = v
+      this.nIter = iter.toInt
 
-  override def keyPressed(e: KeyEvent): Unit = e.getKeyCode match
-    case KeyEvent.VK_UP => updateScale(1.1)
-    case KeyEvent.VK_DOWN => updateScale(0.9)
+    override def keyPressed(e: KeyEvent): Unit = e.getKeyCode match
+      case KeyEvent.VK_UP => updateScale(1.1)
+      case KeyEvent.VK_DOWN => updateScale(0.9)
 
-  override def keyTyped(e: KeyEvent): Unit = {}
-  override def keyReleased(e: KeyEvent): Unit = {}
-  private def updateScale(k: Double): Unit = scale *= k
+    override def keyTyped(e: KeyEvent): Unit = {}
+    override def keyReleased(e: KeyEvent): Unit = {}
+    private def updateScale(k: Double): Unit = scale *= k
 
-end VisualiserPanel

@@ -4,32 +4,24 @@ import akka.actor.AbstractActor
 import model.{Body, Boundary}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
-import controller.Simulator
-import actor.SlaveActor
-import view.ViewActor.ViewCommands
-
-import java.awt.{BorderLayout, Component, FlowLayout}
-import scala.language.{existentials, postfixOps}
+import controller.MainActor
 
 object ViewActor:
   enum ViewCommands:
     case Start
     case Stop
-    case Update
+    case UpdateView(bodies: List[Body], vt: Double, iteration: Long)
 
-  def apply(bounds: Boundary, w: Int, h: Int): Behavior[ViewCommands] =
-    Behaviors.setup( ctx =>
-      val simulationGui = new SimulationView(w, h, bounds)
-      val slaveActor = SlaveActor()
-      Behaviors.receiveMessage( msg => msg match
-        case ViewCommands.Start =>
-          val simulation = new Simulator(100, 100, 2) //todo pass args
-          Behaviors.same
-        case ViewCommands.Stop =>
-          //stop simulation
-          Behaviors.same
-        case ViewCommands.Update =>
-//          simulationGui.display()
-          Behaviors.same
-        )
-    )
+  import ViewCommands.*
+
+  def apply(bounds: Boundary, mainActor: ActorRef[MainActor.Commands]): Behavior[ViewCommands] =
+    Behaviors setup { ctx =>
+      ctx.log.debug("ViewActor: Setup")
+      val gui = SimulationView(bounds, ctx.self)
+
+      Behaviors receive  { (ctx, msg) => msg match
+        case Start => ctx.log.debug("ViewActor: starting MainActor") ; mainActor ! MainActor.Commands.Start ; Behaviors.same
+        case Stop => ctx.log.debug("ViewActor: stopping MainActor") ; mainActor ! MainActor.Commands.Stop ; Behaviors.stopped
+        case UpdateView(bodies, vt, i) => ctx.log.debug("ViewActor: updating view") ; gui.display(bodies, vt, i) ; Behaviors.same
+      }
+    }
