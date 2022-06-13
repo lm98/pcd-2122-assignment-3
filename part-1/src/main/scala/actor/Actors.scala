@@ -28,8 +28,9 @@ object SimulatorActor:
 
   val dt = 0.001
 
-  def apply(bodies: List[Body],vt: Double = 0.00, i: Int): Behavior[Commands] =
+  def apply(bodies: List[Body],vt: Double = 0.00, i: Int, maxIterations: Int): Behavior[Commands] =
     Behaviors receive { (ctx, msg) => msg match
+      case _ if i == maxIterations => Behaviors.stopped
       case Start() =>
         val master = ctx.spawnAnonymous(MasterActor(List(), bodies.size, ctx.self))
         bodies.foreach(b => master ! MasterActor.Request(UpdateVelocity(b, bodies, dt)))
@@ -37,13 +38,13 @@ object SimulatorActor:
       case Update(UpdateVelocity(_,_,_), updatedBodies) =>
         val master = ctx.spawnAnonymous(MasterActor(List(), bodies.size, ctx.self))
         updatedBodies.foreach(b => master ! MasterActor.Request(UpdatePosition(b, dt)))
-        SimulatorActor(updatedBodies, vt, i)
+        SimulatorActor(updatedBodies, vt, i, maxIterations)
       case Update(UpdatePosition(_,_), updatedBodies) =>
         val master = ctx.spawnAnonymous(MasterActor(List(), bodies.size, ctx.self))
         val bounds = Boundary(-4.00, -4.00, 4.00, 4.00)
         updatedBodies.foreach(b => master ! MasterActor.Request(CheckBoundary(b, bounds)))
-        SimulatorActor(updatedBodies, vt, i)
-      case Update(CheckBoundary(_,_), updatedBodies) => SimulatorActor(updatedBodies, vt + dt, i + 1)
+        SimulatorActor(updatedBodies, vt, i, maxIterations)
+      case Update(CheckBoundary(_,_), updatedBodies) => SimulatorActor(updatedBodies, vt + dt, i + 1, maxIterations)
     }
 
 object MasterActor:
