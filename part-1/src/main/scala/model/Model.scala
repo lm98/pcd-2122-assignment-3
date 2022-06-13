@@ -2,16 +2,18 @@ package model
 
 import conc.model.exc.{InfiniteForceException, NullVectorException}
 import model.Objects2d.*
-import model.Objects2d.V2d.normalize
+import model.Objects2d.V2dOp.normalize
 import scala.annotation.{tailrec, targetName}
 
 case class Boundary(x0: Double, y0: Double, x1: Double, y1: Double)
 
 case class Body(id: Int, pos: P2d, vel: V2d, mass: Double)
 
-object Body:
+case object BodyOp:
   val REPULSIVE_CONST = 0.01
   val FRICTION_CONST = 1.00
+
+  def apply(id: Int, p2d: P2d, v2d: V2d, mass: Double): Body = Body(id, p2d, v2d, mass)
 
   def updatePos(body:Body, dt: Double): Body = body match
     case Body(id, pos, vel, mass) => Body(id, pos + (vel :* dt), vel, mass)
@@ -28,7 +30,7 @@ object Body:
     val dist = getDistanceFrom(to, by)
     if dist < 0 then throw new InfiniteForceException
     try
-      normalize(V2d(by.pos,to.pos)) :* (by.mass * REPULSIVE_CONST / (dist*dist))
+      normalize(V2dOp(by.pos,to.pos)) :* (by.mass * REPULSIVE_CONST / (dist*dist))
     catch
       case _: Exception => throw new InfiniteForceException
 
@@ -54,11 +56,11 @@ object Body:
         Body(body.id, P2d(x, boundary.y1), V2d(body.vel.x, -body.vel.y), body.mass)
       case _ if y < boundary.y0 =>
         Body(body.id, P2d(x, boundary.y0), V2d(body.vel.x, -body.vel.y), body.mass)
+      case _ => body
 
 object Objects2d:
   case class V2d(x: Double, y: Double)
-  object V2d:
-    @tailrec
+  object V2dOp:
     def apply(x: Double, y: Double): V2d = V2d(x, y)
     def apply(v2d: V2d): V2d = v2d
     def apply(from: P2d, to: P2d): V2d = V2d(from.x - to.x, from.y - to.y)
@@ -75,6 +77,8 @@ object Objects2d:
     def +(v2d: V2d): V2d = V2d(v.x + v2d.x, v.y + v2d.y)
 
   case class P2d(x: Double, y: Double)
+  object P2dOp:
+    def apply(x: Int, y: Int): P2d = P2d(x, y)
   extension (p: P2d)
     @targetName("sum")
     def +(v2d: V2d): P2d = P2d(p.x + v2d.x, p.y + v2d.y)

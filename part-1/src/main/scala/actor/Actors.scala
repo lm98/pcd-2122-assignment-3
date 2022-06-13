@@ -6,7 +6,7 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.scaladsl.AskPattern.Askable
 import akka.util.Timeout
 import jdk.javadoc.doclet.Reporter
-import model.Objects2d.V2d
+import model.Objects2d.{P2d, V2d}
 import model.{Body, Boundary}
 import view.ViewActor
 
@@ -30,28 +30,39 @@ object SimulatorActor:
 
   val dt = 0.001
 
-  def apply(bodies: List[Body], maxIterations: Long, bounds: Boundary, vt: Double = 0.00, i: Int = 0): Behavior[Commands] =
+  def apply(bodies: List[Body], maxIterations: Long,viewActor: ActorRef[ViewActor.ViewCommands], bounds: Boundary, vt: Double = 0.00, i: Int = 0): Behavior[Commands] =
     Behaviors setup { ctx =>
-      ctx.log.debug("SimulatorActor: setup")
-      val master = ctx.spawnAnonymous(MasterActor(List(), bodies.size, ctx.self))
+      ctx.log.debug(s"SimulatorActor: setting up iteration #$i")
+      //ctx.self ! SimulatorActor.Start()
       Behaviors receive { (ctx, msg) => msg match
+        case _ if i == maxIterations =>
+          ctx.log.debug("Simulation terminated") ; Behaviors.stopped
         case Start() =>
           ctx.log.debug(s"Starting iteration #$i")
+          val master = ctx.spawnAnonymous(MasterActor(List(), bodies.size, ctx.self))
           bodies.foreach(b => master ! MasterActor.Request(UpdateVelocity(b, bodies, dt)))
           Behaviors.same
         case Stop() => Behaviors.stopped
         case Update(UpdateVelocity(_,_,_), updatedBodies) =>
+          val master = ctx.spawnAnonymous(MasterActor(List(), bodies.size, ctx.self))
           updatedBodies.foreach(b => master ! MasterActor.Request(UpdatePosition(b, dt)))
-          SimulatorActor(updatedBodies, maxIterations, bounds, vt, i)
+          SimulatorActor(updatedBodies, maxIterations, viewActor, bounds, vt, i)
         case Update(UpdatePosition(_,_), updatedBodies) =>
+          val master = ctx.spawnAnonymous(MasterActor(List(), bodies.size, ctx.self))
           updatedBodies.foreach(b => master ! MasterActor.Request(CheckBoundary(b, bounds)))
-          SimulatorActor(updatedBodies, maxIterations, bounds, vt, i)
+          SimulatorActor(updatedBodies, maxIterations, viewActor, bounds, vt, i)
         case Update(CheckBoundary(_,_), updatedBodies) =>
-          //viewActor ! ViewActor.ViewCommands.UpdateView(updatedBodies, vt, i)
+          viewActor ! ViewActor.ViewCommands.UpdateView(updatedBodies, vt, i)
           ctx.log.debug(s"Iteration #$i: bodies: $updatedBodies")
-          SimulatorActor(updatedBodies, maxIterations, bounds, vt + dt, i + 1)
+          SimulatorActor(updatedBodies, maxIterations, viewActor, bounds, vt + dt, i + 1)
       }
     }
+
+  @main def testSimulation(): Unit =
+    val bodies = List(Body(1, P2d(0,0), V2d(0,0), 10), Body(2, P2d(1,1), V2d(0,0), 10))
+    val bounds = Boundary(-4.0, -4.0, 4.0, 4.0)
+    val maxIterations = 5
+    //val sim = ActorSystem(SimulatorActor(bodies, maxIterations, bounds), "sim")
 
 object MasterActor:
   sealed trait Commands
@@ -61,24 +72,34 @@ object MasterActor:
   def apply(bodies: List[Body], nBodies: Int, replyTo: ActorRef[SimulatorActor.Commands]): Behavior[Commands] =
     Behaviors receive { (ctx, msg) => msg match
       case Request(info) =>
+        ctx.log.debug("Sending request to slave")
         ctx.spawnAnonymous(SlaveActor()) ! SlaveActor.Request(info, ctx.self) ; Behaviors.same
-      case Update(info, result) => bodies.size match
-        case _ if bodies.size < nBodies => MasterActor(bodies :+ result, nBodies, replyTo)
-        case _ if bodies.size == nBodies => replyTo ! SimulatorActor.Update(info, bodies) ; Behaviors.stopped
+      case Update(info, result) =>
+        val updatedBodies = bodies :+ result
+        updatedBodies.size match
+        case _ if updatedBodies.size < nBodies =>
+          ctx.log.debug(s"Received $result from slave, ${updatedBodies.size} of $nBodies")
+          MasterActor(updatedBodies, nBodies, replyTo)
+        case _ if updatedBodies.size == nBodies =>
+          ctx.log.debug(s"Received ${updatedBodies.size} results from slave, sending to simulator")
+          replyTo ! SimulatorActor.Update(info, updatedBodies) ; Behaviors.stopped
     }
 
 object SlaveActor:
-  import model.Body.*
+  import model.BodyOp.*
   case class Request(info: Task, replyTo: ActorRef[MasterActor.Commands])
 
   def apply(): Behavior[Request] =
-    Behaviors receiveMessage { msg => msg.info match
+    Behaviors receive { (ctx, msg) => msg.info match
       case UpdateVelocity(body: Body, others: List[Body], dt: Double) =>
         val totalForce = computeTotalForceOnBody(body, others)
         val acc = totalForce :* (1.0/body.mass)
+        ctx.log.debug(s"Update Velocity - Replying to master with result $body")
          msg.replyTo ! MasterActor.Update(msg.info, updateVelocity(body, acc, dt)) ; Behaviors.stopped
       case UpdatePosition(body: Body, dt: Double) =>
+        ctx.log.debug(s"Update Position - Replying to master with result $body")
         msg.replyTo ! MasterActor.Update(msg.info, updatePos(body, dt)) ; Behaviors.stopped
       case CheckBoundary(body: Body, bounds: Boundary) =>
+        ctx.log.debug(s"CheckBoundary - Replying to master with result $body")
         msg.replyTo ! MasterActor.Update(msg.info, checkAndSolveBoundaryCollision(body, bounds)) ; Behaviors.stopped
     }
