@@ -40,20 +40,20 @@ object SimulatorActor:
           ctx.log.debug(s"Starting iteration #$i")
           val master = ctx.spawnAnonymous(MasterActor(List(), bodies.size, ctx.self))
           bodies.foreach(b => master ! MasterActor.Request(UpdateVelocity(b, bodies, dt)))
-          SimulatorActor(bodies, maxIterations, bounds, viewActor,true, vt, i)
+          SimulatorActor(bodies, maxIterations, bounds, viewActor, false, vt, i)
         case Stop() => Behaviors.stopped
         case Update(UpdateVelocity(_,_,_), updatedBodies) =>
           val master = ctx.spawnAnonymous(MasterActor(List(), bodies.size, ctx.self))
           updatedBodies.foreach(b => master ! MasterActor.Request(UpdatePosition(b, dt)))
-          SimulatorActor(updatedBodies, maxIterations, bounds, viewActor,started, vt, i)
+          SimulatorActor(updatedBodies, maxIterations, bounds, viewActor,false, vt, i)
         case Update(UpdatePosition(_,_), updatedBodies) =>
           val master = ctx.spawnAnonymous(MasterActor(List(), bodies.size, ctx.self))
           updatedBodies.foreach(b => master ! MasterActor.Request(CheckBoundary(b, bounds)))
-          SimulatorActor(updatedBodies, maxIterations, bounds,viewActor, started, vt, i)
+          SimulatorActor(updatedBodies, maxIterations, bounds,viewActor, false, vt, i)
         case Update(CheckBoundary(_,_), updatedBodies) if i < maxIterations =>
           viewActor ! ViewActor.ViewCommands.UpdateView(updatedBodies, vt, i)
           ctx.log.debug(s"Iteration #$i: bodies: $updatedBodies")
-          SimulatorActor(updatedBodies, maxIterations, bounds, viewActor,started, vt + dt, i + 1)
+          SimulatorActor(updatedBodies, maxIterations, bounds, viewActor,true, vt + dt, i + 1)
         case Update(_, updatedBodies) if i == maxIterations =>
           ctx.log.debug(s"Iteration #$i: ending simulation with bodies: $updatedBodies")
           Behaviors.stopped
