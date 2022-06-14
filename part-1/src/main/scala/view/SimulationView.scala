@@ -38,26 +38,25 @@ class SimulationView(bounds: Boundary, viewActor: ActorRef[ViewActor.ViewCommand
 
   class ControlPanel extends FlowPanel:
     val start: Button = new Button("start"){
+      enabled = true
       reactions += {
         case event.ButtonClicked(_) =>
           enabled = false
           stop.enabled = true
-          startSimulation()
+          viewActor ! ViewActor.ViewCommands.Start
       }
     }
     val stop: Button = new Button("stop"){
+      enabled = false
       reactions += {
         case event.ButtonClicked(_) =>
           enabled = false
           start.enabled = true
-          stopSimulation()
+          viewActor ! ViewActor.ViewCommands.Stop
       }
     }
     contents += start
     contents += stop
-
-    def startSimulation(): Unit = println("View: starting simulation") ; viewActor ! ViewActor.ViewCommands.Start
-    def stopSimulation(): Unit = viewActor ! ViewActor.ViewCommands.Stop
 
 
   class VisualiserPanel(w: Int, h: Int, bound: Boundary) extends Panel, KeyListener:

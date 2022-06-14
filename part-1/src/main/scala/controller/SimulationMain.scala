@@ -29,23 +29,18 @@ object MainActor:
 
   def apply(nBodies: Int, maxIterations: Long): Behavior[Commands] =
     Behaviors setup { ctx =>
-      ctx.log.debug("MainActor: Setup")
       val bounds = createBounds()
       val viewActor = ctx.spawn(ViewActor(bounds, ctx.self), "ViewActor")
       val simulator = ctx.spawn(SimulatorActor(createBodies(bounds, nBodies),maxIterations, bounds, viewActor), "SimulationActor")
 
       Behaviors receive  { (ctx,msg) => msg match
-        case Start => ctx.log.debug("MainActor: Starting simulation") ; simulator ! SimulatorActor.Start() ; Behaviors.same
+        case Start => simulator ! SimulatorActor.Start() ; Behaviors.same
         case Stop => Behaviors.stopped
       }
     }
 
 object SimulationMain extends App:
-  main(100, 1000)
+  main(1000, 1000)
 
   @main def main(nBodies: Int, maxIterations: Long): Unit =
-    val main = ActorSystem(MainActor(nBodies, maxIterations), "main")
-    main ! MainActor.Commands.Start
-
-
-
+    ActorSystem(MainActor(nBodies, maxIterations), "main")
