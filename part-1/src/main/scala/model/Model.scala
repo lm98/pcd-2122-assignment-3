@@ -1,9 +1,11 @@
 package model
 
-import conc.model.exc.{InfiniteForceException, NullVectorException}
 import model.Objects2d.*
 import model.Objects2d.V2dOp.normalize
 import scala.annotation.{tailrec, targetName}
+
+class InfiniteForceException extends Exception
+class NullVectorException extends Exception
 
 case class Boundary(x0: Double, y0: Double, x1: Double, y1: Double)
 
