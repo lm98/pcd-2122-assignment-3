@@ -30,31 +30,33 @@ object SimulatorActor:
 
   val dt = 0.001
 
-  def apply(bodies: List[Body], maxIterations: Long,viewActor: ActorRef[ViewActor.ViewCommands], bounds: Boundary, vt: Double = 0.00, i: Int = 0): Behavior[Commands] =
+  def apply(bodies: List[Body], maxIterations: Long, bounds: Boundary, viewActor: ActorRef[ViewActor.ViewCommands],
+            started: Boolean = false ,vt: Double = 0.00, i: Int = 0): Behavior[Commands] =
     Behaviors setup { ctx =>
       ctx.log.debug(s"SimulatorActor: setting up iteration #$i")
-      //ctx.self ! SimulatorActor.Start()
+      if started then ctx.self ! SimulatorActor.Start()
       Behaviors receive { (ctx, msg) => msg match
-        case _ if i == maxIterations =>
-          ctx.log.debug("Simulation terminated") ; Behaviors.stopped
         case Start() =>
           ctx.log.debug(s"Starting iteration #$i")
           val master = ctx.spawnAnonymous(MasterActor(List(), bodies.size, ctx.self))
           bodies.foreach(b => master ! MasterActor.Request(UpdateVelocity(b, bodies, dt)))
-          Behaviors.same
+          SimulatorActor(bodies, maxIterations, bounds, viewActor,true, vt, i)
         case Stop() => Behaviors.stopped
         case Update(UpdateVelocity(_,_,_), updatedBodies) =>
           val master = ctx.spawnAnonymous(MasterActor(List(), bodies.size, ctx.self))
           updatedBodies.foreach(b => master ! MasterActor.Request(UpdatePosition(b, dt)))
-          SimulatorActor(updatedBodies, maxIterations, viewActor, bounds, vt, i)
+          SimulatorActor(updatedBodies, maxIterations, bounds, viewActor,started, vt, i)
         case Update(UpdatePosition(_,_), updatedBodies) =>
           val master = ctx.spawnAnonymous(MasterActor(List(), bodies.size, ctx.self))
           updatedBodies.foreach(b => master ! MasterActor.Request(CheckBoundary(b, bounds)))
-          SimulatorActor(updatedBodies, maxIterations, viewActor, bounds, vt, i)
-        case Update(CheckBoundary(_,_), updatedBodies) =>
+          SimulatorActor(updatedBodies, maxIterations, bounds,viewActor, started, vt, i)
+        case Update(CheckBoundary(_,_), updatedBodies) if i < maxIterations =>
           viewActor ! ViewActor.ViewCommands.UpdateView(updatedBodies, vt, i)
           ctx.log.debug(s"Iteration #$i: bodies: $updatedBodies")
-          SimulatorActor(updatedBodies, maxIterations, viewActor, bounds, vt + dt, i + 1)
+          SimulatorActor(updatedBodies, maxIterations, bounds, viewActor,started, vt + dt, i + 1)
+        case Update(_, updatedBodies) if i == maxIterations =>
+          ctx.log.debug(s"Iteration #$i: ending simulation with bodies: $updatedBodies")
+          Behaviors.stopped
       }
     }
 
@@ -63,6 +65,7 @@ object SimulatorActor:
     val bounds = Boundary(-4.0, -4.0, 4.0, 4.0)
     val maxIterations = 5
     //val sim = ActorSystem(SimulatorActor(bodies, maxIterations, bounds), "sim")
+    //sim ! SimulatorActor.Start()
 
 object MasterActor:
   sealed trait Commands
