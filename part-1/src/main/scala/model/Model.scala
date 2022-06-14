@@ -15,37 +15,33 @@ case object BodyOp:
   val REPULSIVE_CONST = 0.01
   val FRICTION_CONST = 1.00
 
-  def apply(id: Int, p2d: P2d, v2d: V2d, mass: Double): Body = Body(id, p2d, v2d, mass)
-
-  def updatePos(body:Body, dt: Double): Body = body match
-    case Body(id, pos, vel, mass) => Body(id, pos + (vel :* dt), vel, mass)
+  def updatePos(body: Body, dt: Double): Body = body match
+    case Body(id, pos, vel, mass) => Body(id, pos :+ (vel :* dt), vel, mass)
 
   def updateVelocity(body: Body, acc: V2d, dt: Double): Body = body match
     case Body(id, pos, vel, mass) => Body(id, pos, vel + (acc :* dt), mass)
 
-  def getDistanceFrom(from: Body, to: Body): Double =
-    val dx = from.pos.x - to.pos.x
-    val dy = from.pos.y - to.pos.y
+  def changeVel(body: Body, v2d: V2d): Body = body match
+    case Body(id, pos, _, mass) => Body(id, pos, v2d, mass)
+
+  def getDistanceFrom(body: Body, from: Body): Double =
+    val dx = body.pos.x - from.pos.x
+    val dy = body.pos.y - from.pos.y
     Math.sqrt(dx*dx + dy*dy)
 
   def computeRepulsiveForceBy(to: Body, by: Body): V2d =
     val dist = getDistanceFrom(to, by)
-    if dist < 0 then throw new InfiniteForceException
-    try
-      normalize(V2dOp(by.pos,to.pos)) :* (by.mass * REPULSIVE_CONST / (dist*dist))
-    catch
-      case _: Exception => throw new InfiniteForceException
+    if dist <= 0 then throw new InfiniteForceException else
+      try
+        normalize(V2dOp(by.pos,to.pos)) :* (by.mass * REPULSIVE_CONST / (dist*dist))
+      catch
+        case _: Exception => throw new InfiniteForceException
 
   def getCurrentFrictionForce(body: Body): V2d =
     body.vel :* (- FRICTION_CONST)
 
   def computeTotalForceOnBody(body: Body, bodies: List[Body]): V2d =
-    val totalForce: V2d = V2d(0,0)
-    bodies.filter(b => !b.equals(body)).foreach(b => {
-      val forceOtherBody = computeRepulsiveForceBy(body, b)
-      totalForce + forceOtherBody
-    })
-    totalForce + getCurrentFrictionForce(body)
+    bodies.filterNot(b => b.equals(body)).foldLeft(V2d(0,0))((acc, b) => acc + computeRepulsiveForceBy(body, b))
 
   def checkAndSolveBoundaryCollision(body: Body, boundary: Boundary): Body =
     val x = body.pos.x ; val y = body.pos.y
@@ -65,12 +61,12 @@ object Objects2d:
   object V2dOp:
     def apply(x: Double, y: Double): V2d = V2d(x, y)
     def apply(v2d: V2d): V2d = v2d
-    def apply(from: P2d, to: P2d): V2d = V2d(from.x - to.x, from.y - to.y)
+    def apply(from: P2d, to: P2d): V2d = V2d(to.x - from.x,to.y - from.y)
     def normalize(v2d: V2d): V2d = v2d match
       case V2d(x,y) =>
-        val mod = Math.sqrt(v2d.x*v2d.x + v2d.y*v2d.y)
+        val mod = Math.sqrt(x*x + y*y)
         if mod > 0 then
-          V2d(v2d.x / mod, v2d.y / mod)
+          V2d(x / mod, y / mod)
         else throw new NullVectorException
   extension (v: V2d)
     @targetName("scalarMul")
@@ -82,5 +78,7 @@ object Objects2d:
   object P2dOp:
     def apply(x: Int, y: Int): P2d = P2d(x, y)
   extension (p: P2d)
+    @targetName("sumVec")
+    def :+(v2d: V2d): P2d = P2d(p.x + v2d.x, p.y + v2d.y)
     @targetName("sum")
-    def +(v2d: V2d): P2d = P2d(p.x + v2d.x, p.y + v2d.y)
+    def +(p2d: P2d): P2d = P2d(p.x + p2d.x, p.y + p2d.y)

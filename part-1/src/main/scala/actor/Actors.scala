@@ -33,7 +33,7 @@ object SimulatorActor:
   def apply(bodies: List[Body], maxIterations: Long, bounds: Boundary, viewActor: ActorRef[ViewActor.ViewCommands],
             started: Boolean = false ,vt: Double = 0.00, i: Int = 0): Behavior[Commands] =
     Behaviors setup { ctx =>
-      ctx.log.debug(s"SimulatorActor: setting up iteration #$i")
+      //ctx.log.debug(s"SimulatorActor: setting up iteration #$i")
       if started then ctx.self ! SimulatorActor.Start()
       Behaviors receive { (ctx, msg) => msg match
         case Start() =>

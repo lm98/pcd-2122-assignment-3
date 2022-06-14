@@ -22,7 +22,7 @@ object MainActor:
     val bodies = for i <- 0 until nBodies yield
       val x: Double = bounds.x0 * 0.25 + rand.nextDouble * (bounds.x1 - bounds.x0) * 0.25
       val y: Double = bounds.y0 * 0.25 + rand.nextDouble * (bounds.x1 - bounds.y0) * 0.25
-      Body(i, P2d(x, y), V2d(rand.nextDouble, rand.nextDouble), rand.nextDouble * 10)
+      Body(i, P2d(x, y), V2d(x, y), 10.0)
     bodies.toList
 
   def createBounds(): Boundary = Boundary(-4.00, -4.00, 4.00, 4.00)
