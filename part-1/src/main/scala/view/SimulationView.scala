@@ -51,7 +51,6 @@ class SimulationView(bounds: Boundary, viewActor: ActorRef[ViewActor.ViewCommand
       reactions += {
         case event.ButtonClicked(_) =>
           enabled = false
-          start.enabled = true
           viewActor ! ViewActor.ViewCommands.Stop
       }
     }
