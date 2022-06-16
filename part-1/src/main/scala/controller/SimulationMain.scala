@@ -1,10 +1,9 @@
 package controller
 
-import actor.SimulatorActor
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorSystem, Behavior}
 import model.Objects2d.{P2d, V2d}
-import model.{Body, Boundary}
+import model.{Body, BodyActor, Boundary, SimulatorActor}
 import view.{SimulationView, ViewActor}
 
 import scala.util.Random
@@ -17,7 +16,6 @@ object MainActor:
   import Commands.*
 
   def createBodies(bounds: Boundary, nBodies: Int): List[Body] =
-    //List(Body(1, P2d(0,0), V2d(0,1), 10), Body(2, P2d(1,1), V2d(1,0), 10))
     val rand = new Random(System.currentTimeMillis)
     val bodies = for i <- 0 until nBodies yield
       val x: Double = bounds.x0 * 0.25 + rand.nextDouble * (bounds.x1 - bounds.x0) * 0.25
@@ -30,10 +28,12 @@ object MainActor:
   def apply(nBodies: Int, maxIterations: Long): Behavior[Commands] =
     Behaviors setup { ctx =>
       val bounds = createBounds()
+      val bodies = createBodies(bounds, nBodies)
       val viewActor = ctx.spawn(ViewActor(bounds, ctx.self), "ViewActor")
-      val simulator = ctx.spawn(SimulatorActor(createBodies(bounds, nBodies),maxIterations, bounds, viewActor), "SimulationActor")
+      val bodyActors = bodies.map(b => ctx.spawnAnonymous(BodyActor(b)))
+      val simulator = ctx.spawn(SimulatorActor(bodies, bodyActors,maxIterations, bounds, viewActor), "SimulationActor")
 
-      Behaviors receive  { (ctx,msg) => msg match
+      Behaviors receive  { (_,msg) => msg match
         case Start => simulator ! SimulatorActor.Start() ; Behaviors.same
         case Stop => Behaviors.stopped
       }
