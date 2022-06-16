@@ -8,12 +8,15 @@ import view.{SimulationView, ViewActor}
 
 import scala.util.Random
 
-object MainActor:
-  enum Commands:
-    case Start
-    case Stop
+enum Commands:
+  case Start
+  case Stop
 
-  import Commands.*
+import Commands.*
+import model.SimulationCommands
+
+object MainActor:
+
 
   def createBodies(bounds: Boundary, nBodies: Int): List[Body] =
     val rand = new Random(System.currentTimeMillis)
@@ -34,7 +37,7 @@ object MainActor:
       val simulator = ctx.spawn(SimulatorActor(bodies, bodyActors,maxIterations, bounds, viewActor), "SimulationActor")
 
       Behaviors receive  { (_,msg) => msg match
-        case Start => simulator ! SimulatorActor.Start() ; Behaviors.same
+        case Start => simulator ! SimulationCommands.Start ; Behaviors.same
         case Stop => Behaviors.stopped
       }
     }

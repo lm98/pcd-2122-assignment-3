@@ -19,35 +19,38 @@ enum Task:
   case UpdatePosition(dt: Double)
   case CheckBoundary(boundary: Boundary)
 
+case class Request(info: Task, replyTo: ActorRef[ReceiveTaskResult])
+
 case class ReceiveTaskResult(info: Task, result: Body)
 
+enum SimulationCommands:
+  case Start
+  case Stop
+  case Update(info: Task, bodies: List[Body])
+
 import model.Task.*
+import SimulationCommands.*
 
 object SimulatorActor:
-  sealed trait Commands
-  case class Start() extends Commands
-  case class Stop() extends Commands
-  case class Update(info: Task, bodies: List[Body]) extends Commands
-
   val dt = 0.001
 
-  def apply(bodies: List[Body], bodyActors: List[ActorRef[BodyActor.Request]], maxIterations: Long, bounds: Boundary, viewActor: ActorRef[ViewActor.ViewCommands],
-            started: Boolean = false ,vt: Double = 0.00, i: Int = 0): Behavior[Commands] =
+  def apply(bodies: List[Body], bodyActors: List[ActorRef[Request]], maxIterations: Long, bounds: Boundary, viewActor: ActorRef[ViewActor.ViewCommands],
+            started: Boolean = false ,vt: Double = 0.00, i: Int = 0): Behavior[SimulationCommands] =
     Behaviors setup { ctx =>
-      if started then ctx.self ! SimulatorActor.Start()
+      if started then ctx.self ! Start
       Behaviors receive { (ctx, msg) => msg match
-        case Start() =>
+        case Start =>
           val buffer = ctx.spawnAnonymous(SimulationBufferActor(List(), bodyActors.size, ctx.self))
-          bodyActors.foreach(b => b ! BodyActor.Request(UpdateVelocity(bodies, dt), buffer))
+          bodyActors.foreach(b => b ! Request(UpdateVelocity(bodies, dt), buffer))
           SimulatorActor(bodies, bodyActors,maxIterations, bounds, viewActor, false, vt, i)
-        case Stop() => Behaviors.stopped
+        case Stop => Behaviors.stopped
         case Update(UpdateVelocity(_,_), updatedBodies) =>
           val buffer = ctx.spawnAnonymous(SimulationBufferActor(List(), bodyActors.size, ctx.self))
-          bodyActors.foreach(b => b ! BodyActor.Request(UpdatePosition(dt), buffer))
+          bodyActors.foreach(b => b ! Request(UpdatePosition(dt), buffer))
           SimulatorActor(updatedBodies, bodyActors,maxIterations, bounds, viewActor,false, vt, i)
         case Update(UpdatePosition(_), updatedBodies) =>
           val buffer = ctx.spawnAnonymous(SimulationBufferActor(List(), bodyActors.size, ctx.self))
-          bodyActors.foreach(b => b ! BodyActor.Request(CheckBoundary(bounds), buffer))
+          bodyActors.foreach(b => b ! Request(CheckBoundary(bounds), buffer))
           SimulatorActor(updatedBodies, bodyActors,maxIterations, bounds,viewActor, false, vt, i)
         case Update(CheckBoundary(_), updatedBodies) if i < maxIterations =>
           viewActor ! ViewActor.ViewCommands.UpdateView(updatedBodies, vt, i)
@@ -57,9 +60,11 @@ object SimulatorActor:
       }
     }
 
+
+
 object SimulationBufferActor:
 
-  def apply(bodies: List[Body], nBodies: Int, replyTo: ActorRef[SimulatorActor.Commands]): Behavior[ReceiveTaskResult] =
+  def apply(bodies: List[Body], nBodies: Int, replyTo: ActorRef[SimulationCommands]): Behavior[ReceiveTaskResult] =
     Behaviors receive { (ctx, msg) => msg match
       case ReceiveTaskResult(info, result) =>
         val updatedBodies = bodies :+ result
@@ -67,12 +72,12 @@ object SimulationBufferActor:
         case _ if updatedBodies.size < nBodies =>
           SimulationBufferActor(updatedBodies, nBodies, replyTo)
         case _ if updatedBodies.size == nBodies =>
-          replyTo ! SimulatorActor.Update(info, updatedBodies) ; Behaviors.stopped
+          replyTo ! Update(info, updatedBodies) ; Behaviors.stopped
     }
 
 object BodyActor:
   import model.BodyOp.*
-  case class Request(info: Task, replyTo: ActorRef[ReceiveTaskResult])
+
 
   def apply(body: Body): Behavior[Request] =
     Behaviors receive { (_, msg) => msg.info match

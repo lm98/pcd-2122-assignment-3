@@ -4,7 +4,7 @@ import akka.actor.AbstractActor
 import model.{Body, Boundary}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
-import controller.MainActor
+import controller.Commands
 
 object ViewActor:
   enum ViewCommands:
@@ -14,12 +14,12 @@ object ViewActor:
 
   import ViewCommands.*
 
-  def apply(bounds: Boundary, mainActor: ActorRef[MainActor.Commands]): Behavior[ViewCommands] =
+  def apply(bounds: Boundary, mainActor: ActorRef[Commands]): Behavior[ViewCommands] =
     Behaviors setup { ctx =>
       val gui = SimulationView(bounds, ctx.self)
       Behaviors receive { (ctx, msg) => msg match
-        case Start => mainActor ! MainActor.Commands.Start ; Behaviors.same
-        case Stop => mainActor ! MainActor.Commands.Stop ; Behaviors.stopped
+        case Start => mainActor ! Commands.Start ; Behaviors.same
+        case Stop => mainActor ! Commands.Stop ; Behaviors.stopped
         case UpdateView(bodies, vt, i) => gui.display(bodies, vt, i) ; Behaviors.same
       }
     }
