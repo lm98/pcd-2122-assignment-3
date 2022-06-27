@@ -29,19 +29,31 @@ object RainGauge:
 
         timers.startTimerWithFixedDelay(Tick(), Tick(), 2.seconds)
 
-        running(ctx, IndexedSeq.empty)
+        running(ctx, IndexedSeq.empty, IndexedSeq.empty)
       }
     }
 
-  def running(ctx: ActorContext[RainGauge.Event], listeners: IndexedSeq[ActorRef[ReceiveValue]]): Behavior[Event] =
+  def running(ctx: ActorContext[RainGauge.Event], listeners: IndexedSeq[ActorRef[ReceiveValue]], values: IndexedSeq[Double]): Behavior[Event] =
+    def checkAlarmCondition(values: IndexedSeq[Double]): Boolean =
+      values.count(_ > 0.5) >= (ctx.system.settings.config.getInt("rain-analysis.rainGaugesPerNode")/2 + 1)
+
     Behaviors receiveMessage  { msg => msg match
       case ListenersUpdated(gauges) =>
-        ctx.log.info(s"There are now ${gauges.size} other rain gauges registered in the cluster")
-        running(ctx, gauges.toIndexedSeq)
+        running(ctx, gauges.toIndexedSeq, values)
       case Tick() =>
-        listeners foreach { _ ! ReceiveValue(Random.nextDouble()) }
-        Behaviors.same
+        val value = Random.nextDouble()
+        val newValues = values :+ value
+        listeners foreach { _ ! ReceiveValue(value) }
+        checkAlarmCondition(newValues) match
+          case false if newValues.size >= listeners.size => running(ctx, listeners, IndexedSeq.empty)
+          case false if newValues.size < listeners.size => running(ctx, listeners, newValues)
+          case true => alarmed(ctx)
       case ReceiveValue(value) =>
         ctx.log.info(s"Received $value")
-        Behaviors.same
+        running(ctx, listeners, values :+ value)
+    }
+
+  def alarmed(ctx: ActorContext[RainGauge.Event]): Behavior[Event] =
+    Behaviors receiveMessage { msg => msg match
+      case _ => ctx.log.warn("I'm alarmed") ; Behaviors.same
     }
