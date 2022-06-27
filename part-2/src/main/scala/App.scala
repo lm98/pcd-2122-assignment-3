@@ -1,6 +1,7 @@
 import akka.actor.typed.{ActorSystem, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.typed.Cluster
+import cluster.firestation.FireStation
 import cluster.raingauge.RainGauge
 import com.typesafe.config.ConfigFactory
 
@@ -9,8 +10,9 @@ object App:
     def apply(): Behavior[Nothing] = Behaviors.setup[Nothing] { ctx =>
       val cluster = Cluster(ctx.system)
 
-      if cluster.selfMember.hasRole("rainGauge") then
-        ctx.spawn(RainGauge(), "RainGauge")
+      cluster.selfMember.roles.head match
+        case "rainGauge" => ctx.spawn(RainGauge(), "RainGauge")
+        case "fireStation" => ctx.spawn(FireStation(), "FireStation")
 
       Behaviors.empty
     }
@@ -29,6 +31,7 @@ object App:
       startup("rainGauge", 25251)
       startup("rainGauge", 0)
       startup("rainGauge", 1)
+      startup("fireStation", 25252)
     else
       require(args.length == 2, "Usage: role port")
       startup(args(0), args(1).toInt)
