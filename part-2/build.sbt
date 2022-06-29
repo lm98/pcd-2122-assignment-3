@@ -11,6 +11,7 @@ lazy val root = (project in file("."))
       "com.typesafe.akka" %% "akka-remote" % AkkaVersion, // For akka remote
       "com.typesafe.akka" %% "akka-cluster-typed" % AkkaVersion, // akka clustering module
       "com.typesafe.akka" %% "akka-serialization-jackson" % AkkaVersion,
-      "ch.qos.logback" % "logback-classic" % "1.2.3"
+      "ch.qos.logback" % "logback-classic" % "1.2.3",
+      "org.scala-lang.modules" %% "scala-swing" % "3.0.0"
     )
   )
