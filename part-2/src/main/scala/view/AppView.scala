@@ -1,7 +1,6 @@
 package view
 
-import model.Zone
-import model.ZoneState
+import model.{Costants, PluviometerState, RectangleBounds, Zone, ZoneState}
 
 import scala.util.Random
 import com.sun.java.accessibility.util.AWTEventMonitor.addWindowListener
@@ -15,7 +14,7 @@ import scala.swing.*
 import scala.swing.BorderPanel.Position.*
 
 
-class AppView(zones: Int = 6, width: Int = 720, height: Int = 720) extends Frame:
+class AppView(val zones: List[Zone], width: Int = 820, height: Int = 520) extends Frame:
   val cityPanel: CityPanel = new CityPanel()
   size = Dimension(width + 100, height + 100)
   title = "Zones with rain detector"
@@ -30,13 +29,8 @@ class AppView(zones: Int = 6, width: Int = 720, height: Int = 720) extends Frame
   })
   def display(): Unit = ??? //todo change area status
 
-  class CityPanel(numZones: Int = 6) extends Panel:
-    val rand: Int = new Random().between(1,4)
-    val zones = for x <- 1 until (numZones + 1) yield
-      Zone(x, ZoneState.Ok, rand)
-
-    preferredSize = Dimension(600,600)
-
+  class CityPanel extends Panel:
+    preferredSize = Dimension(600,500)
     override def paint(g: Graphics2D): Unit =
       val g2: Graphics2D = g
       g2 setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
@@ -44,19 +38,21 @@ class AppView(zones: Int = 6, width: Int = 720, height: Int = 720) extends Frame
       g2 drawRect (0, 0, 700, 700)
       g2 setColor java.awt.Color.BLACK
       zones.foreach(zone => {
-        println(zone.id + " " + zone.state)
         zone.state match
           case ZoneState.Ok => g2.setColor(java.awt.Color.GREEN)
           case ZoneState.Alarm => g2.setColor(java.awt.Color.RED)
           case ZoneState.Managing => g2.setColor(java.awt.Color.CYAN)
-        g2 fillRect((zone.id + 1) * 50, (zone.id + 1) * 30, zone.width, zone.height)
+        g2 fillRect(zone.bounds.x0, zone.bounds.y0, zone.bounds.width, zone.bounds.height)
         g2.setColor(java.awt.Color.BLACK)
-        g2 drawString(s"ZONE ${zone.id} - status: ${zone.state.toString}", 5 + 5, 7 + 15)
-        g2 drawString (s"Pluviometers: ${zone.numDevices}", 5 + 5, 23 + 15)
-        val rand = new Random().between(50, 150)
-        for i <- 0 until zone.numDevices yield
-          g2.fillOval(rand, rand, 10, 10)
-        g2 drawRect(5, 7, 200 - 1, 150 - 1)
+        g2 drawString(s"ZONE ${zone.id} - status: ${zone.state.toString}", zone.bounds.x0 + 5, zone.bounds.y0 + 15)
+        g2 drawString (s"Rain Gauges: ${zone.numDevices}", zone.bounds.x0 + 10, zone.bounds.y0 + 30)
+        zone.pluviometers.foreach(p => {
+          g2.fillOval(p.x, p.y, 10, 10)
+          p.state match
+            case PluviometerState.Ok => g2.setColor(java.awt.Color.BLACK)
+            case PluviometerState.Alarm => g2.setColor(java.awt.Color.BLUE)
+        })
+        g2 drawRect(zone.bounds.x0, zone.bounds.y0, zone.bounds.width, zone.bounds.height)
       })
 
 
@@ -72,5 +68,18 @@ class AppView(zones: Int = 6, width: Int = 720, height: Int = 720) extends Frame
       g2 setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
 
 
+import Costants.*
 @main def testMain(): Unit =
-  new AppView()
+  val rand = new Random()
+  val rows: Int = 2
+  val cols: Int = 3
+  var x: Int = 0
+  val zones = for
+    r <- 0 until rows
+    c <- 0 until cols
+  yield
+    x = x + 1
+    new Zone(x, ZoneState.Ok, rand.between(1,4), new RectangleBounds(c *  Costants.defalutWidth, r * Costants.defaultHeight))
+
+  new AppView(zones.toList)
+
