@@ -6,20 +6,23 @@ import scala.util.Random
 import com.sun.java.accessibility.util.AWTEventMonitor.addWindowListener
 
 import java.awt.event.{WindowAdapter, WindowEvent}
-import java.awt.{Dimension, Graphics2D, RenderingHints}
+import java.awt.{Dimension, Graphics2D, RenderingHints, TextArea}
 import javax.swing.{BorderFactory, SwingUtilities}
 import scala.::
 import scala.language.postfixOps
 import scala.swing.*
+import scala.swing.Action.NoAction.enabled
 import scala.swing.BorderPanel.Position.*
 
 
 class AppView(val zones: List[Zone], width: Int = 820, height: Int = 520) extends Frame:
-  val cityPanel: CityPanel = new CityPanel()
+  val cityPanel: CityPanel = new CityPanel
+  val buttonsPanel: ManagePanel = new ManagePanel
   size = Dimension(width + 100, height + 100)
   title = "Zones with rain detector"
   contents = new BorderPanel{
-    layout(cityPanel) = Center
+    layout(cityPanel) = North
+    layout(buttonsPanel) = Center
   }
   resizable = false
   visible = true
@@ -30,7 +33,8 @@ class AppView(val zones: List[Zone], width: Int = 820, height: Int = 520) extend
   def display(): Unit = ??? //todo change area status
 
   class CityPanel extends Panel:
-    preferredSize = Dimension(600,500)
+    preferredSize = Dimension(600,300)
+
     override def paint(g: Graphics2D): Unit =
       val g2: Graphics2D = g
       g2 setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
@@ -55,13 +59,23 @@ class AppView(val zones: List[Zone], width: Int = 820, height: Int = 520) extend
         g2 drawRect(zone.bounds.x0, zone.bounds.y0, zone.bounds.width, zone.bounds.height)
       })
 
-
-  class ZonePanel(zone: Zone) extends Panel: //todo status will be enum with ok/alarm/management
-    val manage: Button = new Button("Manage") {
-      enabled = false
-      action = new Action("Manage Zone") :
-        def apply(): Unit = ??? //todo send manage action
+  class ManagePanel extends FlowPanel:
+    val textArea = new Label("Zone management")
+    val buttonManage: Button = new Button {
+      text = "Manage Zone"
+      visible = false
+      action = new Action("Manage Zone"):
+        override def apply(): Unit =
+          enabled = false
     }
+    contents += textArea
+    contents += buttonManage
+    /*zones.foreach(z => {
+      z.state match
+        case ZoneState.Alarm => manage.visible = true
+        case ZoneState.Managing => manage.enabled = false
+        case ZoneState.Ok => manage.visible = false
+    })*/
     override def paint(g: Graphics2D): Unit =
       val g2: Graphics2D = g
       g2 setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
@@ -79,7 +93,7 @@ import Costants.*
     c <- 0 until cols
   yield
     x = x + 1
-    new Zone(x, ZoneState.Ok, rand.between(1,4), new RectangleBounds(c *  Costants.defalutWidth, r * Costants.defaultHeight))
+    new Zone(x, ZoneState.Alarm, rand.between(1,4), new RectangleBounds(c *  Costants.defalutWidth, r * Costants.defaultHeight))
 
   new AppView(zones.toList)
 
