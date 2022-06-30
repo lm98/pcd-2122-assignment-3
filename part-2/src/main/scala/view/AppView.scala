@@ -3,7 +3,7 @@ package view
 import model.{Costants, PluviometerState, RectangleBounds, Zone, ZoneState}
 
 import scala.util.Random
-import com.sun.java.accessibility.util.AWTEventMonitor.addWindowListener
+import com.sun.java.accessibility.util.AWTEventMonitor.{addActionListener, addWindowListener}
 
 import java.awt.event.{WindowAdapter, WindowEvent}
 import java.awt.{Dimension, Graphics2D, RenderingHints, TextArea}
@@ -39,7 +39,7 @@ class AppView(val zones: List[Zone], width: Int = 820, height: Int = 520) extend
       val g2: Graphics2D = g
       g2 setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
       g2 setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
-      g2 drawRect (0, 0, 700, 700)
+//      g2 drawRect (0, 0, 700, 700)
       g2 setColor java.awt.Color.BLACK
       zones.foreach(zone => {
         zone.state match
@@ -48,39 +48,50 @@ class AppView(val zones: List[Zone], width: Int = 820, height: Int = 520) extend
           case ZoneState.Managing => g2.setColor(java.awt.Color.CYAN)
         g2 fillRect(zone.bounds.x0, zone.bounds.y0, zone.bounds.width, zone.bounds.height)
         g2.setColor(java.awt.Color.BLACK)
-        g2 drawString(s"ZONE ${zone.id} - status: ${zone.state.toString}", zone.bounds.x0 + 5, zone.bounds.y0 + 15)
-        g2 drawString (s"Rain Gauges: ${zone.numDevices}", zone.bounds.x0 + 10, zone.bounds.y0 + 30)
+        g2 drawString(s"ZONE ${zone.id}", zone.bounds.x0 + 5, zone.bounds.y0 + 15)
+//        g2 drawString (s"Rain Gauges: ${zone.numDevices}", zone.bounds.x0 + 10, zone.bounds.y0 + 30)
         zone.pluviometers.foreach(p => {
           g2.fillOval(p.x, p.y, 10, 10)
           p.state match
             case PluviometerState.Ok => g2.setColor(java.awt.Color.BLACK)
             case PluviometerState.Alarm => g2.setColor(java.awt.Color.BLUE)
         })
+        addActionListener(l => {
+
+        })
         g2 drawRect(zone.bounds.x0, zone.bounds.y0, zone.bounds.width, zone.bounds.height)
       })
 
-  class ManagePanel extends FlowPanel:
-    val textArea = new Label("Zone management")
-    val buttonManage: Button = new Button {
-      text = "Manage Zone"
-      visible = false
-      action = new Action("Manage Zone"):
-        override def apply(): Unit =
-          enabled = false
-    }
-    contents += textArea
-    contents += buttonManage
+  class ManagePanel extends BoxPanel(Orientation.Vertical):
+    zones.foreach(z => {
+      val textArea = new TextField(s"\tZone ${z.id}\tRain gauges = ${z.pluviometers.size}\tStatus: ${z.state} ")
+      textArea.preferredSize = Dimension(50,30)
+      textArea.editable = false
+      val buttonManage: Button = new Button {
+        text = s"Manage Zone"
+        action = new Action(s"Manage Zone ${z.id}"):
+          override def apply(): Unit =
+            enabled = false
+      }
+      z.state match
+        case ZoneState.Ok =>
+          buttonManage.enabled = false
+          buttonManage.visible = false
+        case ZoneState.Managing =>
+          buttonManage.enabled = false
+          buttonManage.visible = true
+        case ZoneState.Alarm =>
+          buttonManage.enabled = true
+          buttonManage.visible = true
+      contents += textArea
+      contents += buttonManage
+    })
     /*zones.foreach(z => {
       z.state match
         case ZoneState.Alarm => manage.visible = true
         case ZoneState.Managing => manage.enabled = false
         case ZoneState.Ok => manage.visible = false
     })*/
-    override def paint(g: Graphics2D): Unit =
-      val g2: Graphics2D = g
-      g2 setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-      g2 setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
-
 
 import Costants.*
 @main def testMain(): Unit =
@@ -93,7 +104,7 @@ import Costants.*
     c <- 0 until cols
   yield
     x = x + 1
-    new Zone(x, ZoneState.Alarm, rand.between(1,4), new RectangleBounds(c *  Costants.defalutWidth, r * Costants.defaultHeight))
+    new Zone(x, ZoneState.Managing, rand.between(1,4), new RectangleBounds(c *  Costants.defalutWidth, r * Costants.defaultHeight))
 
   new AppView(zones.toList)
 
