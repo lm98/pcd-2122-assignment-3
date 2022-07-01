@@ -1,6 +1,6 @@
 package view
 
-import actors.{ViewActor, ViewActorCommands}
+import actors.ViewActor.*
 import akka.remote.ContainerFormats.ActorRef
 import model.{Costants, RectangleBounds, Zone, ZoneState}
 
