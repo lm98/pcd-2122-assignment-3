@@ -5,7 +5,7 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import cluster.CborSerializable
 import cluster.raingauge.RainGauge
-import cluster.raingauge.RainGauge.{ListenerServiceKey, NotifyAlarmOff, ReceiveValue}
+import cluster.raingauge.RainGauge.{ListenerServiceKey, NotifyAlarmOff, Response}
 
 import concurrent.duration.*
 
@@ -37,11 +37,11 @@ object FireStation:
     Behaviors receiveMessage { msg => msg match
       case RainGaugesUpdated(newSet) =>
         ctx.log.info(s"There are now ${rainGauges.size} rain gauges")
-        running(ctx, newSet.toIndexedSeq, alarmNotifications)
+        alarmManagement(ctx, newSet.toIndexedSeq)
       case NotifyAlarmOn() =>
         val notifications = alarmNotifications + 1
         ctx.log.info(s"Received $notifications notifications")
-        if notifications >= ctx.system.settings.config.getInt("rain-analysis.rainGaugesPerNode") then
+        if notifications >= rainGauges.size then
           alarmManagement(ctx, rainGauges)
         else
           running(ctx, rainGauges, notifications)
@@ -55,4 +55,5 @@ object FireStation:
         ctx.log.info("Taking care of the alarm")
         rainGauges foreach { _ ! NotifyAlarmOff() }
         running(ctx, rainGauges, 0)
+      case _ => Behaviors.same
     }

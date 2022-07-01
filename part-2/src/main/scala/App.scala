@@ -5,13 +5,15 @@ import cluster.firestation.FireStation
 import cluster.raingauge.RainGauge
 import com.typesafe.config.ConfigFactory
 
+import scala.util.Random
+
 object App:
   object RootBehavior:
     def apply(): Behavior[Nothing] = Behaviors.setup[Nothing] { ctx =>
       val cluster = Cluster(ctx.system)
 
       cluster.selfMember.roles.head match
-        case "rainGauge" => ctx.spawn(RainGauge(), "RainGauge")
+        case "rainGauge" => ctx.spawn(RainGauge(), "RainGauge"+Random.nextInt(10))
         case "fireStation" => ctx.spawn(FireStation(), "FireStation")
 
       Behaviors.empty
