@@ -8,8 +8,6 @@ import com.sun.java.accessibility.util.AWTEventMonitor.{addActionListener, addWi
 import java.awt.event.{WindowAdapter, WindowEvent}
 import java.awt.{Dimension, Graphics2D, RenderingHints, TextArea}
 import javax.swing.{BorderFactory, SwingUtilities}
-import scala.{+:, ::}
-import scala.collection.{mutable}
 import scala.language.postfixOps
 import scala.swing.*
 import scala.swing.Action.NoAction.enabled
@@ -78,9 +76,6 @@ class AppView(val zones: List[Zone], width: Int = 820, height: Int = 520) extend
         editable = false
         preferredSize = Dimension(50,50)
       }))
-      /*val textArea = new TextField(s"\tZone ${z.id}\tRain gauges = ${z.pluviometers.size}\tStatus: ${z.state.toString} ")
-      textArea.preferredSize = Dimension(50,30)
-      textArea.editable = false*/
       buttons = buttons.+((z.id, new Button{
         visible = false
         action = new Action(s"Manage Zone ${z.id}"):

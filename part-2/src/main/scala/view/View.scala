@@ -8,25 +8,21 @@ import scala.util.Random
 
 class View(var zones: List[Zone]/*, val viewActor: ActorRef[_]*/):
   val gui = new AppView(zones) //todo pass view actor
-  var x = 0
+  /*var x = 0
   while x < 1000000000 do x = x + 1
-
-//  wait(2000)
-  /*if x == 1000000000 then
+  if x == 1000000000 then
     zones.foreach(z =>
-      println(z.state)
-      z.changeState(ZoneState.Alarm)
-        println (z.state)
-      gui.updateZone(z)
+      updateZoneState(z, ZoneState.Alarm)
     )
   while x < 2000000000 do x = x + 1
   if x == 2000000000 then
     zones.foreach(z =>
-      z.changeState(ZoneState.Managing)
-        println (z.state)
-        gui.updateZone(z)
+      updateZoneState(z, ZoneState.Managing)
     )*/
 
+  def updateZoneState(zone: Zone, newState: ZoneState): Unit =
+    zone.changeState(newState)
+    gui.updateZone(zone)
 
 
 @main def testView(): Unit =
