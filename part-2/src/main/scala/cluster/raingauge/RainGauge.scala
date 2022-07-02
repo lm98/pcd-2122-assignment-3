@@ -14,7 +14,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Random, Success}
 
 enum ResponseValue:
-  case Ok(value: Double)
+  case Ok(isAlarmed: Boolean)
   case Unreachable
 
 import ResponseValue.*
@@ -24,9 +24,9 @@ object RainGauge:
   private case class RainGaugesUpdated(newSet: Set[ActorRef[Event]]) extends Event
   private case class FireStationsUpdated(newSet: Set[ActorRef[NotifyAlarmOn]]) extends Event
   private case class Tick() extends Event
-  private case class Request(replyTo: ActorRef[Response]) extends Event with CborSerializable
-  private case class Response(value: Double) extends Event with CborSerializable
-  private case class ReceiveValue(responseValue: ResponseValue) extends Event with CborSerializable
+  private case class RequestState(replyTo: ActorRef[Response]) extends Event with CborSerializable
+  private case class Response(isAlarmed: Boolean) extends Event with CborSerializable
+  private case class ReceiveState(responseValue: ResponseValue) extends Event with CborSerializable
   case class NotifyAlarmOff() extends Event with CborSerializable
 
   val ListenerServiceKey: ServiceKey[Event] = ServiceKey[Event]("Listener")
@@ -46,7 +46,7 @@ object RainGauge:
         ctx.system.receptionist ! Receptionist.Subscribe(FireStationServiceKey, subscriptionAdapter)
         ctx.system.receptionist ! Receptionist.Register(ListenerServiceKey, ctx.self)
 
-        timers.startTimerWithFixedDelay(Tick(), Tick(), 2.seconds)
+        timers.startTimerWithFixedDelay(Tick(), Tick(), 5.seconds)
 
         running(ctx, IndexedSeq.empty, IndexedSeq.empty, 0.0, IndexedSeq.empty)
       }
@@ -59,7 +59,7 @@ object RainGauge:
                       tmpValues: IndexedSeq[ResponseValue]): Behavior[Event] =
 
     def checkAlarmCondition(values: IndexedSeq[ResponseValue]): Boolean =
-      values.count { case Ok(value) if value > ALARM_THRESHOLD => true ; case _ => false } >= (rainGauges.size/2 + 1)
+      values.count { case Ok(true) => true ; case _ => false } >= (rainGauges.size/2 + 1)
 
     Behaviors receiveMessage  { msg => msg match
       case RainGaugesUpdated(gauges) =>
@@ -69,42 +69,22 @@ object RainGauge:
       case Tick() =>
         //Check other rain gauges values
         given Timeout = 2.seconds
-        rainGauges.foreach(l => ctx.ask(l, Request.apply){
-          case Success(Response(value)) => ReceiveValue(Ok(value))
-          case _ => ReceiveValue(Unreachable)
+        rainGauges.foreach(l => ctx.ask(l, RequestState.apply){
+          case Success(Response(isAlarmed)) => ReceiveState(Ok(isAlarmed))
+          case _ => ReceiveState(Unreachable)
         })
         //Update the value
         val value = ThreadLocalRandom.current().nextDouble()
         ctx.log.info(s"${ctx.self.path.name}: Produced $value")
-        running(ctx, rainGauges, fireStations, value, tmpValues)
-      case Request(replyTo) => replyTo ! Response(lastValue) ; Behaviors.same
-      case ReceiveValue(value) =>
+        running(ctx, rainGauges, fireStations, value, IndexedSeq.empty)
+      case RequestState(replyTo) => replyTo ! Response(lastValue >= ALARM_THRESHOLD) ; Behaviors.same
+      case ReceiveState(value) =>
         val newValues = tmpValues :+ value
-        checkAlarmCondition(newValues) match
-          case true => alarmed(rainGauges, fireStations, lastValue)
-          case false if newValues.size < rainGauges.size => running(ctx, rainGauges, fireStations, lastValue, newValues)
-          case _ => running(ctx, rainGauges, fireStations, lastValue, IndexedSeq.empty)
-      case _ => Behaviors.same
-    }
-
-  private def alarmed(rainGauges: IndexedSeq[ActorRef[Event]],
-                      fireStations:IndexedSeq[ActorRef[NotifyAlarmOn]],
-                      lastValue: Double): Behavior[Event] =
-    Behaviors setup { ctx =>
-
-      fireStations foreach { _ ! NotifyAlarmOn() }
-
-      Behaviors receiveMessage { msg => msg match
-        case RainGaugesUpdated(newSet) => running(ctx, newSet.toIndexedSeq, fireStations, lastValue, IndexedSeq.empty)
-        case FireStationsUpdated(newSet) => alarmed(rainGauges, newSet.toIndexedSeq, lastValue)
-        case Tick() =>
-          val value = ThreadLocalRandom.current().nextDouble()
-          ctx.log.warn(s"${ctx.self.path.name}: Still alarmed. Produced $value")
-          alarmed(rainGauges, fireStations, value)
-        case Request(replyTo) => replyTo ! Response(lastValue) ; Behaviors.same
-        case NotifyAlarmOff() =>
-          ctx.log.info(s"${ctx.self.path.name}: Alarm managed, returning to normal behavior")
+        if (checkAlarmCondition(newValues))
+          fireStations foreach { _ ! NotifyAlarmOn() }
           running(ctx, rainGauges, fireStations, lastValue, IndexedSeq.empty)
-        case _ => ctx.log.warn(s"${ctx.self.path.name}: I'm alarmed") ; Behaviors.same
-      }
+        else
+          running(ctx, rainGauges, fireStations, lastValue, newValues)
+      case NotifyAlarmOff() => ctx.log.info("Alarm is now off") ; Behaviors.same
+      case _ => Behaviors.same
     }
