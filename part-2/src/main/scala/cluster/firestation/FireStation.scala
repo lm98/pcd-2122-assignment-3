@@ -12,7 +12,6 @@ import concurrent.duration.*
 object FireStation:
   sealed trait Event
   private case class RainGaugesUpdated(newSet: Set[ActorRef[RainGauge.Event]]) extends Event
-  private case class Tick() extends Event
   case class NotifyAlarmOn() extends Event with CborSerializable
 
   val FireStationServiceKey: ServiceKey[NotifyAlarmOn] = ServiceKey[NotifyAlarmOn]("FireStation")

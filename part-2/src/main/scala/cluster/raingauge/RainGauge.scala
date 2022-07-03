@@ -13,20 +13,20 @@ import concurrent.duration.*
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Random, Success}
 
-enum ResponseValue:
+enum ResponseState:
   case Ok(isAlarmed: Boolean)
   case Unreachable
 
-import ResponseValue.*
+import ResponseState.*
 
 object RainGauge:
   sealed trait Event
   private case class RainGaugesUpdated(newSet: Set[ActorRef[Event]]) extends Event
   private case class FireStationsUpdated(newSet: Set[ActorRef[NotifyAlarmOn]]) extends Event
   private case class Tick() extends Event
-  private case class RequestState(replyTo: ActorRef[Response]) extends Event with CborSerializable
-  private case class Response(isAlarmed: Boolean) extends Event with CborSerializable
-  private case class ReceiveState(responseValue: ResponseValue) extends Event with CborSerializable
+  private case class Request(replyTo: ActorRef[Response]) extends Event with CborSerializable
+  private case class Response(value: Double) extends Event with CborSerializable
+  private case class ReceiveState(state: ResponseState) extends Event with CborSerializable
 
   val ListenerServiceKey: ServiceKey[Event] = ServiceKey[Event]("Listener")
   val ALARM_THRESHOLD = 0.60
@@ -55,9 +55,9 @@ object RainGauge:
                       rainGauges: IndexedSeq[ActorRef[RainGauge.Event]],
                       fireStations:IndexedSeq[ActorRef[NotifyAlarmOn]],
                       lastValue: Double,
-                      tmpValues: IndexedSeq[ResponseValue]): Behavior[RainGauge.Event] =
+                      tmpValues: IndexedSeq[ResponseState]): Behavior[RainGauge.Event] =
 
-    def checkAlarmCondition(values: IndexedSeq[ResponseValue]): Boolean =
+    def checkAlarmCondition(values: IndexedSeq[ResponseState]): Boolean =
       values.count { case Ok(true) => true ; case _ => false } >= (rainGauges.size/2 + 1)
 
     Behaviors receiveMessage  { msg => msg match
@@ -68,17 +68,17 @@ object RainGauge:
       case Tick() =>
         //Check other rain gauges values
         given Timeout = 2.seconds
-        rainGauges.foreach(l => ctx.ask(l, RequestState.apply){
-          case Success(Response(isAlarmed)) => ReceiveState(Ok(isAlarmed))
+        rainGauges.foreach(l => ctx.ask(l, Request.apply){
+          case Success(Response(value)) => ReceiveState(Ok(value >= ALARM_THRESHOLD))
           case _ => ReceiveState(Unreachable)
         })
         //Update the value
         val value = ThreadLocalRandom.current().nextDouble()
         ctx.log.info(s"${ctx.self.path.name}: Produced $value")
         running(ctx, rainGauges, fireStations, value, IndexedSeq.empty)
-      case RequestState(replyTo) => replyTo ! Response(lastValue >= ALARM_THRESHOLD) ; Behaviors.same
-      case ReceiveState(value) =>
-        val newValues = tmpValues :+ value
+      case Request(replyTo) => replyTo ! Response(lastValue) ; Behaviors.same
+      case ReceiveState(state) =>
+        val newValues = tmpValues :+ state
         if (checkAlarmCondition(newValues))
           fireStations foreach { _ ! NotifyAlarmOn() }
           running(ctx, rainGauges, fireStations, lastValue, IndexedSeq.empty)
