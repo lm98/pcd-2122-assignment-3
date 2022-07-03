@@ -13,7 +13,7 @@ object FireStation:
   sealed trait Event
   private case class RainGaugesUpdated(newSet: Set[ActorRef[RainGauge.Event]]) extends Event
   case class NotifyAlarmOn() extends Event with CborSerializable
-
+  case class NotifyAlarmOff() extends Event with CborSerializable
   val FireStationServiceKey: ServiceKey[NotifyAlarmOn] = ServiceKey[NotifyAlarmOn]("FireStation")
 
   def apply(): Behavior[FireStation.Event] =
@@ -42,5 +42,6 @@ object FireStation:
           running(ctx, rainGauges, 0)
         else
           running(ctx, rainGauges, notifications)
+      case NotifyAlarmOff() => ???
       case _ => Behaviors.same
     }
