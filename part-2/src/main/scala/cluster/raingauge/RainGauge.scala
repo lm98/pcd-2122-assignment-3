@@ -27,7 +27,6 @@ object RainGauge:
   private case class RequestState(replyTo: ActorRef[Response]) extends Event with CborSerializable
   private case class Response(isAlarmed: Boolean) extends Event with CborSerializable
   private case class ReceiveState(responseValue: ResponseValue) extends Event with CborSerializable
-  case class NotifyAlarmOff() extends Event with CborSerializable
 
   val ListenerServiceKey: ServiceKey[Event] = ServiceKey[Event]("Listener")
   val ALARM_THRESHOLD = 0.60
@@ -53,10 +52,10 @@ object RainGauge:
     }
 
   private def running(ctx: ActorContext[RainGauge.Event],
-                      rainGauges: IndexedSeq[ActorRef[Event]],
+                      rainGauges: IndexedSeq[ActorRef[RainGauge.Event]],
                       fireStations:IndexedSeq[ActorRef[NotifyAlarmOn]],
                       lastValue: Double,
-                      tmpValues: IndexedSeq[ResponseValue]): Behavior[Event] =
+                      tmpValues: IndexedSeq[ResponseValue]): Behavior[RainGauge.Event] =
 
     def checkAlarmCondition(values: IndexedSeq[ResponseValue]): Boolean =
       values.count { case Ok(true) => true ; case _ => false } >= (rainGauges.size/2 + 1)
@@ -85,6 +84,5 @@ object RainGauge:
           running(ctx, rainGauges, fireStations, lastValue, IndexedSeq.empty)
         else
           running(ctx, rainGauges, fireStations, lastValue, newValues)
-      case NotifyAlarmOff() => ctx.log.info("Alarm is now off") ; Behaviors.same
       case _ => Behaviors.same
     }

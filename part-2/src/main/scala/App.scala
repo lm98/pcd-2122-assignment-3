@@ -31,8 +31,8 @@ object App:
   def main(args: Array[String]): Unit =
     if args.isEmpty then
       startup("rainGauge", 25251)
-      startup("rainGauge", 0)
-      startup("rainGauge", 1)
+      startup("rainGauge", 3000)
+      startup("rainGauge", 3001)
       startup("fireStation", 25252)
     else
       require(args.length == 2, "Usage: role port")

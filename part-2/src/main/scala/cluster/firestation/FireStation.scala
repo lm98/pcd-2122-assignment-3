@@ -5,7 +5,7 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import cluster.CborSerializable
 import cluster.raingauge.RainGauge
-import cluster.raingauge.RainGauge.{ListenerServiceKey, NotifyAlarmOff}
+import cluster.raingauge.RainGauge.ListenerServiceKey
 
 import concurrent.duration.*
 
@@ -17,7 +17,7 @@ object FireStation:
 
   val FireStationServiceKey: ServiceKey[NotifyAlarmOn] = ServiceKey[NotifyAlarmOn]("FireStation")
 
-  def apply(): Behavior[Event] =
+  def apply(): Behavior[FireStation.Event] =
     Behaviors setup { ctx =>
       val subscriptionAdapter = ctx.messageAdapter[Receptionist.Listing] {
         case RainGauge.ListenerServiceKey.Listing(newSet) =>
@@ -28,7 +28,9 @@ object FireStation:
       running(ctx, IndexedSeq.empty, 0)
     }
 
-  private def running(ctx: ActorContext[Event], rainGauges: IndexedSeq[ActorRef[RainGauge.Event]], alarmNotifications: Int): Behavior[Event] =
+  private def running(ctx: ActorContext[FireStation.Event],
+                      rainGauges: IndexedSeq[ActorRef[RainGauge.Event]],
+                      alarmNotifications: Int): Behavior[FireStation.Event] =
     Behaviors receiveMessage { msg => msg match
       case RainGaugesUpdated(newSet) =>
         ctx.log.info(s"There are now ${rainGauges.size} rain gauges")
@@ -38,7 +40,6 @@ object FireStation:
         ctx.log.info(s"Received $notifications notifications")
         if notifications >= rainGauges.size then
           ctx.log.info("Taking care of the alarm")
-          rainGauges foreach { _ ! NotifyAlarmOff() }
           running(ctx, rainGauges, 0)
         else
           running(ctx, rainGauges, notifications)
