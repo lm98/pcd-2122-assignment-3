@@ -1,8 +1,8 @@
 .gradle
-/target/
-/export/
+*/target/*
+*/export/*
 
-/.idea/
+*/.idea/*
 
 # Ignore Gradle GUI config
 gradle-app.setting
