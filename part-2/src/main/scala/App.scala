@@ -13,11 +13,11 @@ object App:
   object RootBehavior:
     def apply(): Behavior[Nothing] = Behaviors.setup[Nothing] { ctx =>
       val cluster = Cluster(ctx.system)
-      var zones: List[Zone] = initZones()
+      var zone: Zone = new Zone(1, ZoneState.Ok, 3, new RectangleBounds(1 * Costants.defalutWidth, 1 * Costants.defaultHeight))
       cluster.selfMember.roles.head match
         case "rainGauge" => ctx.spawn(RainGauge(), "RainGauge"+Random.nextInt(10))
         case "fireStation" => ctx.spawn(FireStation(), "FireStation")
-        case "viewActor" => ctx.spawn(ViewActor(zones), "ViewActor")
+        case "viewActor" => ctx.spawn(ViewActor(zone), "ViewActor")
       Behaviors.empty
     }
 

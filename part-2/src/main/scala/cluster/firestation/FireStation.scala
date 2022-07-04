@@ -61,6 +61,7 @@ object FireStation:
     Behaviors receiveMessage { msg => msg match
       case NotifyAlarmOff() =>
         ctx.log.info("Alarm managed")
+        viewActors foreach { _ ! ViewActor.AlarmOff() }
         running(ctx, rainGauges, viewActors, 0)
       case _ => Behaviors.same
     }
