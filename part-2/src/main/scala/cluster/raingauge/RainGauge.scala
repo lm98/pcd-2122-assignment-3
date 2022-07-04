@@ -22,13 +22,13 @@ import ResponseState.*
 object RainGauge:
   sealed trait Event
   private case class RainGaugesUpdated(newSet: Set[ActorRef[Event]]) extends Event
-  private case class FireStationsUpdated(newSet: Set[ActorRef[NotifyAlarmOn]]) extends Event
+  private case class FireStationsUpdated(newSet: Set[ActorRef[FireStation.Event]]) extends Event
   private case class Tick() extends Event
   private case class Request(replyTo: ActorRef[Response]) extends Event with CborSerializable
   private case class Response(value: Double) extends Event with CborSerializable
   private case class ReceiveState(state: ResponseState) extends Event with CborSerializable
 
-  val ListenerServiceKey: ServiceKey[Event] = ServiceKey[Event]("Listener")
+  val ListenerServiceKey: ServiceKey[RainGauge.Event] = ServiceKey[RainGauge.Event]("Listener")
   val ALARM_THRESHOLD = 0.60
 
   def apply(): Behavior[Event] =
@@ -53,7 +53,7 @@ object RainGauge:
 
   private def running(ctx: ActorContext[RainGauge.Event],
                       rainGauges: IndexedSeq[ActorRef[RainGauge.Event]],
-                      fireStations:IndexedSeq[ActorRef[NotifyAlarmOn]],
+                      fireStations:IndexedSeq[ActorRef[FireStation.Event]],
                       lastValue: Double,
                       tmpValues: IndexedSeq[ResponseState]): Behavior[RainGauge.Event] =
 

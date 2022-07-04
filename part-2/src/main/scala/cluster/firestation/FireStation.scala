@@ -14,7 +14,7 @@ object FireStation:
   private case class RainGaugesUpdated(newSet: Set[ActorRef[RainGauge.Event]]) extends Event
   case class NotifyAlarmOn() extends Event with CborSerializable
   case class NotifyAlarmOff() extends Event with CborSerializable
-  val FireStationServiceKey: ServiceKey[NotifyAlarmOn] = ServiceKey[NotifyAlarmOn]("FireStation")
+  val FireStationServiceKey: ServiceKey[FireStation.Event] = ServiceKey[FireStation.Event]("FireStation")
 
   def apply(): Behavior[FireStation.Event] =
     Behaviors setup { ctx =>
@@ -43,5 +43,4 @@ object FireStation:
         else
           running(ctx, rainGauges, notifications)
       case NotifyAlarmOff() => ???
-      case _ => Behaviors.same
     }
