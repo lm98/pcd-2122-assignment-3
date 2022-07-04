@@ -1,5 +1,7 @@
 package view
 
+import actors.ViewActor
+import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import model.{Costants, Pluviometer, PluviometerState, RectangleBounds, Zone, ZoneState}
 
 import scala.util.Random
@@ -16,7 +18,7 @@ import scala.swing.BorderPanel.Position.*
 trait ViewFunctions:
   def updateZone(zone: Zone): Unit
 
-class AppView(val zones: List[Zone], width: Int = 820, height: Int = 520) extends Frame with ViewFunctions:
+class AppView(val zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width: Int = 820, height: Int = 520) extends Frame with ViewFunctions:
   val cityPanel: CityPanel = new CityPanel
   val buttonsPanel: ManagePanel = new ManagePanel
   size = Dimension(width + 100, height + 100)
@@ -80,7 +82,8 @@ class AppView(val zones: List[Zone], width: Int = 820, height: Int = 520) extend
         visible = false
         action = new Action(s"Manage Zone ${z.id}"):
           override def apply(): Unit =
-            enabled = false
+//            enabled = false
+            viewActor ! ViewActor.ManageAlarm(z)
         })
       )
       contents += textAreas(z.id)
