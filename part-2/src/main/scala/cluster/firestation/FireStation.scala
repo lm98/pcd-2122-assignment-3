@@ -42,5 +42,5 @@ object FireStation:
           running(ctx, rainGauges, 0)
         else
           running(ctx, rainGauges, notifications)
-      case NotifyAlarmOff() => ???
+      case NotifyAlarmOff() => Behaviors.same
     }
