@@ -62,4 +62,5 @@ object FireStation:
       case NotifyAlarmOff() =>
         ctx.log.info("Alarm managed")
         running(ctx, rainGauges, viewActors, 0)
+      case _ => Behaviors.same
     }
