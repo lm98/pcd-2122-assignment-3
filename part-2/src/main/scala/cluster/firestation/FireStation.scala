@@ -48,7 +48,7 @@ object FireStation:
         ctx.log.info(s"Received $notifications notifications")
         if notifications >= rainGauges.size then
           ctx.log.info("Taking care of the alarm")
-          //viewActors foreach { _ ! ViewActor.AlarmOn() } @todo modify ViewActor.Alarm()
+          viewActors foreach { _ ! ViewActor.AlarmOn() }
           alarmed(ctx, rainGauges, viewActors)
         else
           running(ctx, rainGauges, viewActors, notifications)
