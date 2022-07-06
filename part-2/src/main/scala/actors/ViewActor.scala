@@ -14,45 +14,46 @@ import scala.util.Random
 object ViewActor:
   sealed trait Event
   private case class FireStationsUpdated(newStations: Set[ActorRef[FireStation.Event]]) extends Event
-  case class AlarmOn(/*zone: Zone*/) extends Event with CborSerializable
-  case class AlarmOff(/*zone: Zone*/) extends Event with CborSerializable
-  case class ManageAlarm(/*zone: Zone*/) extends Event with CborSerializable
+  case class AlarmOn(zoneID: Int) extends Event with CborSerializable
+  case class AlarmOff(zoneID: Int) extends Event with CborSerializable
+  case class ManageAlarm(zoneID: Int) extends Event with CborSerializable
 
   val viewActorServiceKey: ServiceKey[ViewActor.Event] = ServiceKey[ViewActor.Event]("ViewService")
 
-  def apply(zone: Zone): Behavior[ViewActor.Event] =
+  def apply(zones: List[Zone]): Behavior[ViewActor.Event] =
     Behaviors setup {ctx =>
-      val view: AppView = new AppView(zone, ctx.self)
-      val subsctiptionAdapter = ctx.messageAdapter[Receptionist.Listing]{
+      val view: AppView = new AppView(zones, ctx.self)
+      val subscriptionAdapter = ctx.messageAdapter[Receptionist.Listing]{
         case FireStationServiceKey.Listing(fireStations) => FireStationsUpdated(fireStations)
       }
-      ctx.system.receptionist ! Receptionist.Subscribe(FireStationServiceKey, subsctiptionAdapter)
+      ctx.system.receptionist ! Receptionist.Subscribe(FireStationServiceKey, subscriptionAdapter)
       ctx.system.receptionist ! Receptionist.Register(viewActorServiceKey, ctx.self)
-      running(ctx, IndexedSeq.empty , view, zone)
+      running(ctx, IndexedSeq.empty , view, zones)
     }
 
-  private def running(ctx: ActorContext[ViewActor.Event], fireStations: IndexedSeq[ActorRef[FireStation.Event]],  view: AppView, zone: Zone): Behavior[ViewActor.Event] =
+  private def running(ctx: ActorContext[ViewActor.Event], fireStations: IndexedSeq[ActorRef[FireStation.Event]],  view: AppView, zones: List[Zone]): Behavior[ViewActor.Event] =
     Behaviors receiveMessage { msg => msg match
-      case AlarmOn(/*zone*/) =>
-        ctx.log.info(s"Zone has alarm on")
-        updateZone(zone, ZoneState.Alarm, view)
-        running(ctx, fireStations, view, zone)
-      case AlarmOff(/*zone*/) =>
-        ctx.log.info(s"Zone has alarm off")
-        updateZone(zone, ZoneState.Ok, view)
-        running(ctx, fireStations, view, zone)
+      case AlarmOn(zoneID) =>
+        ctx.log.info(s"Zone $zoneID has alarm on")
+        updateZone(zoneID, ZoneState.Alarm, view, zones)
+        running(ctx, fireStations, view, zones)
+      case AlarmOff(zoneID) =>
+        ctx.log.info(s"Zone $zoneID has alarm off")
+        updateZone(zoneID, ZoneState.Ok, view, zones)
+        running(ctx, fireStations, view, zones)
       case FireStationsUpdated(newStations) =>
         ctx.log.info(s"Fire stations have been updated")
-        running(ctx, newStations.toIndexedSeq, view, zone)
-      case ManageAlarm(/*zone*/) =>
-        ctx.log.info(s"Zone is managing alarm")
+        running(ctx, newStations.toIndexedSeq, view, zones)
+      case ManageAlarm(zoneID) =>
+        ctx.log.info(s"Zone $zoneID is managing alarm")
         fireStations foreach { _ ! FireStation.NotifyAlarmOff()}
-        updateZone(zone, ZoneState.Managing, view)
-        running(ctx, fireStations, view, zone)
+        updateZone(zoneID, ZoneState.Managing, view, zones)
+        running(ctx, fireStations, view, zones)
       case _ => Behaviors.same
     }
 
-  private def updateZone(zone: Zone/*, zone: Zone*/, newState: ZoneState, view: AppView): Unit =
-    zone.changeState(newState)
-//    zones.filter(z => z.id.equals(zone.id)).foreach(u => u.changeState(newState))
-    view.updateGui(zone)
+  private def updateZone(zoneID: Int, newState: ZoneState, view: AppView, zones: List[Zone]): Unit =
+//    zone.changeState(newState)
+    zones.filter(z => z.id.equals(zoneID)).foreach(u => u.changeState(newState))
+    view.updateGui(zones)
+

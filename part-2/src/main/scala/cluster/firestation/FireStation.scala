@@ -17,7 +17,7 @@ object FireStation:
   case class NotifyAlarmOff() extends Event with CborSerializable
   val FireStationServiceKey: ServiceKey[FireStation.Event] = ServiceKey[FireStation.Event]("FireStation")
 
-  def apply(zone: Int = 0): Behavior[FireStation.Event] =
+  def apply(zone: Int = 1): Behavior[FireStation.Event] =
     Behaviors setup { ctx =>
       val subscriptionAdapter = ctx.messageAdapter[Receptionist.Listing] {
         case ViewActor.viewActorServiceKey.Listing(newSet) =>
@@ -48,7 +48,7 @@ object FireStation:
         ctx.log.info(s"Received $notifications notifications")
         if notifications >= rainGauges.size then
           ctx.log.info("Taking care of the alarm")
-          viewActors foreach { _ ! ViewActor.AlarmOn() }
+          viewActors foreach { _ ! ViewActor.AlarmOn(zone) }
           alarmed(ctx, rainGauges, viewActors, zone)
         else
           running(ctx, rainGauges, viewActors, notifications, zone)
@@ -62,7 +62,7 @@ object FireStation:
     Behaviors receiveMessage { msg => msg match
       case NotifyAlarmOff() =>
         ctx.log.info("Alarm managed")
-        viewActors foreach { _ ! ViewActor.AlarmOff() }
+        viewActors foreach { _ ! ViewActor.AlarmOff(zone) }
         running(ctx, rainGauges, viewActors, 0, zone)
       case _ => Behaviors.same
     }

@@ -33,7 +33,7 @@ object RainGauge:
   val ListenerServiceKey: ServiceKey[RainGauge.Event] = ServiceKey[RainGauge.Event]("RainGauge")
   val ALARM_THRESHOLD = 0.60
 
-  def apply(zone: Int = 0): Behavior[Event] =
+  def apply(zone: Int = 1): Behavior[Event] =
     Behaviors setup { ctx =>
       Behaviors withTimers { timers =>
 

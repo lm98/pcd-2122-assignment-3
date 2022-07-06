@@ -16,9 +16,9 @@ import scala.swing.Action.NoAction.enabled
 import scala.swing.BorderPanel.Position.*
 
 trait ViewFunctions:
-  def updateGui(newZone: Zone): Unit
+  def updateGui(zs: List[Zone]): Unit
 
-class AppView(val zone: Zone, viewActor: ActorRef[ViewActor.Event], width: Int = 820, height: Int = 520) extends Frame with ViewFunctions:
+class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width: Int = 820, height: Int = 520) extends Frame with ViewFunctions:
   val cityPanel: CityPanel = new CityPanel
   val buttonsPanel: ManagePanel = new ManagePanel
   size = Dimension(width + 100, height + 100)
@@ -33,12 +33,13 @@ class AppView(val zone: Zone, viewActor: ActorRef[ViewActor.Event], width: Int =
     override def windowClosing(ev: WindowEvent): Unit = System.exit(-1)
     override def windowClosed(ev: WindowEvent): Unit = System.exit(-1)
   })
-  override def updateGui(newZone: Zone): Unit =
+  override def updateGui(zs: List[Zone]): Unit =
     SwingUtilities.invokeLater(() =>
       /*zones.filter(z => zone.id.equals(z.id)).foreach(u =>
         u.changeState(zone.state)
       )*/
-      zone.changeState(newZone.state)
+      zones = zs
+//      zone.changeState(newZone.state)
       buttonsPanel.display()
       repaint()
     )
@@ -51,7 +52,7 @@ class AppView(val zone: Zone, viewActor: ActorRef[ViewActor.Event], width: Int =
       g2 setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
       g2 setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
       g2 setColor java.awt.Color.BLACK
-      zone.state match
+      /*zone.state match
         case ZoneState.Ok => g2.setColor(java.awt.Color.GREEN)
         case ZoneState.Alarm => g2.setColor(java.awt.Color.RED)
         case ZoneState.Managing => g2.setColor(java.awt.Color.CYAN)
@@ -64,8 +65,8 @@ class AppView(val zone: Zone, viewActor: ActorRef[ViewActor.Event], width: Int =
           case PluviometerState.Ok => g2.setColor(java.awt.Color.BLACK)
           case PluviometerState.Alarm => g2.setColor(java.awt.Color.BLUE)
       })
-      g2 drawRect(zone.bounds.x0, zone.bounds.y0, zone.bounds.width, zone.bounds.height)
-      /*zones.foreach(zone => {
+      g2 drawRect(zone.bounds.x0, zone.bounds.y0, zone.bounds.width, zone.bounds.height)*/
+      zones.foreach(zone => {
         zone.state match
           case ZoneState.Ok => g2.setColor(java.awt.Color.GREEN)
           case ZoneState.Alarm => g2.setColor(java.awt.Color.RED)
@@ -81,13 +82,13 @@ class AppView(val zone: Zone, viewActor: ActorRef[ViewActor.Event], width: Int =
             case PluviometerState.Alarm => g2.setColor(java.awt.Color.BLUE)
         })
         g2 drawRect(zone.bounds.x0, zone.bounds.y0, zone.bounds.width, zone.bounds.height)
-      })*/
+      })
 
   sealed class ManagePanel extends BoxPanel(Orientation.Vertical):
     var buttons: Map[Int, Button] = Map()
     var textAreas: Map[Int, TextField] = Map()
     preferredSize = Dimension(600,400)
-//    zones.foreach(z => {
+    zones.foreach(zone => {
       textAreas = textAreas.+((zone.id, new TextField(){
         text = s"\tZone ${zone.id}\tRain gauges = ${zone.pluviometers.size}\tStatus: ${zone.state.toString} "
         editable = false
@@ -98,17 +99,17 @@ class AppView(val zone: Zone, viewActor: ActorRef[ViewActor.Event], width: Int =
         action = new Action(s"Manage Zone ${zone.id}"):
           override def apply(): Unit =
 //            enabled = false
-            viewActor ! ViewActor.ManageAlarm()
+            viewActor ! ViewActor.ManageAlarm(zone.id)
         })
       )
       contents += textAreas(zone.id)
       contents += buttons(zone.id)
-//    })
+    })
 
     def display(): Unit =
-//      zones.foreach(z =>
-      textAreas(zone.id).text = s"\tZone ${zone.id}\tRain gauges = ${zone.pluviometers.size}\tStatus: ${zone.state.toString} "
-      zone.state match
+      zones.foreach(zone =>
+        textAreas(zone.id).text = s"\tZone ${zone.id}\tRain gauges = ${zone.pluviometers.size}\tStatus: ${zone.state.toString} "
+        zone.state match
           case ZoneState.Ok =>
             buttons(zone.id).enabled = false;
             buttons(zone.id).visible = false
@@ -118,4 +119,4 @@ class AppView(val zone: Zone, viewActor: ActorRef[ViewActor.Event], width: Int =
           case ZoneState.Alarm =>
             buttons(zone.id).enabled = true;
             buttons(zone.id).visible = true
-//      )
+      )
