@@ -2,8 +2,8 @@ import actors.ViewActor
 import akka.actor.typed.{ActorSystem, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.typed.Cluster
-import cluster.firestation.FireStation
-import cluster.raingauge.RainGauge
+import cluster.firestation.FireStationActor
+import cluster.raingauge.RainGaugeActor
 import com.typesafe.config.ConfigFactory
 import model.{Costants, RectangleBounds, Zone, ZoneState}
 
@@ -15,8 +15,8 @@ object App:
       val cluster = Cluster(ctx.system)
       var zones: List[Zone] = initZones()//new Zone(1, ZoneState.Ok, 3, new RectangleBounds(1 * Costants.defalutWidth, 1 * Costants.defaultHeight))
       cluster.selfMember.roles.head match
-        case "rainGauge" => ctx.spawn(RainGauge(), "RainGauge"+Random.nextInt(10))
-        case "fireStation" => ctx.spawn(FireStation(), "FireStation")
+        case "rainGauge" => ctx.spawn(RainGaugeActor(), "RainGauge"+Random.nextInt(10))
+        case "fireStation" => ctx.spawn(FireStationActor(), "FireStation")
         case "viewActor" => ctx.spawn(ViewActor(zones), "ViewActor")
       Behaviors.empty
     }

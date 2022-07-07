@@ -5,19 +5,19 @@ import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import cluster.CborSerializable
-import cluster.raingauge.RainGauge
+import cluster.raingauge.RainGaugeActor
 
 import concurrent.duration.*
 
-object FireStation:
+object FireStationActor:
   sealed trait Event
   private case class ViewActorsUpdated(newSet: Set[ActorRef[ViewActor.Event]]) extends Event
-  case class ZoneRequestRainGaugeToFireStation(zone: Int, replyTo: ActorRef[RainGauge.Event]) extends Event with CborSerializable
+  case class ZoneRequestRainGaugeToFireStation(zone: Int, replyTo: ActorRef[RainGaugeActor.Event]) extends Event with CborSerializable
   case class NotifyAlarmOn() extends Event with CborSerializable
   case class NotifyAlarmOff() extends Event with CborSerializable
-  val FireStationServiceKey: ServiceKey[FireStation.Event] = ServiceKey[FireStation.Event]("FireStation")
+  val FireStationServiceKey: ServiceKey[FireStationActor.Event] = ServiceKey[FireStationActor.Event]("FireStation")
 
-  def apply(zone: Int = 1): Behavior[FireStation.Event] =
+  def apply(zone: Int = 1): Behavior[FireStationActor.Event] =
     Behaviors setup { ctx =>
       val subscriptionAdapter = ctx.messageAdapter[Receptionist.Listing] {
         case ViewActor.viewActorServiceKey.Listing(newSet) =>
@@ -29,17 +29,17 @@ object FireStation:
       running(ctx, Set.empty, IndexedSeq.empty, 0, zone)
     }
 
-  private def running(ctx: ActorContext[Event], 
-                      rainGauges: Set[ActorRef[RainGauge.Event]], 
-                      viewActors: IndexedSeq[ActorRef[ViewActor.Event]], 
-                      alarmNotifications: Int, 
-                      zone: Int): Behavior[FireStation.Event] =
+  private def running(ctx: ActorContext[Event],
+                      rainGauges: Set[ActorRef[RainGaugeActor.Event]],
+                      viewActors: IndexedSeq[ActorRef[ViewActor.Event]],
+                      alarmNotifications: Int,
+                      zone: Int): Behavior[FireStationActor.Event] =
     Behaviors receiveMessage { msg => msg match
       case ViewActorsUpdated(newSet) =>
         running(ctx, rainGauges, newSet.toIndexedSeq, alarmNotifications, zone)
       case ZoneRequestRainGaugeToFireStation(originZone, rainGauge) =>
         if originZone == zone then
-          rainGauge ! RainGauge.ZoneRequestFireStationToRainGauge(ctx.self)
+          rainGauge ! RainGaugeActor.ZoneRequestFireStationToRainGauge(ctx.self)
           running(ctx, rainGauges + rainGauge, viewActors, alarmNotifications, zone)
         else
           Behaviors.same
@@ -55,10 +55,10 @@ object FireStation:
       case _ => Behaviors.same
     }
 
-  private def alarmed(ctx: ActorContext[Event], 
-                      rainGauges: Set[ActorRef[RainGauge.Event]], 
-                      viewActors: IndexedSeq[ActorRef[ViewActor.Event]], 
-                      zone: Int): Behavior[FireStation.Event] =
+  private def alarmed(ctx: ActorContext[Event],
+                      rainGauges: Set[ActorRef[RainGaugeActor.Event]],
+                      viewActors: IndexedSeq[ActorRef[ViewActor.Event]],
+                      zone: Int): Behavior[FireStationActor.Event] =
     Behaviors receiveMessage { msg => msg match
       case NotifyAlarmOff() =>
         ctx.log.info("Alarm managed")

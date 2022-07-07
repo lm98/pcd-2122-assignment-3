@@ -5,8 +5,8 @@ import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.util.Timeout
 import cluster.CborSerializable
-import cluster.firestation.FireStation
-import cluster.firestation.FireStation.{FireStationServiceKey, NotifyAlarmOn}
+import cluster.firestation.FireStationActor
+import cluster.firestation.FireStationActor.{FireStationServiceKey, NotifyAlarmOn}
 
 import java.util.concurrent.ThreadLocalRandom
 import concurrent.duration.*
@@ -19,18 +19,18 @@ enum ResponseState:
 
 import ResponseState.*
 
-object RainGauge:
+object RainGaugeActor:
   sealed trait Event
   private case class RainGaugesUpdated(newSet: Set[ActorRef[Event]]) extends Event
-  private case class ZoneRequestRainGaugeToAnother(zone: Int, rainGauge: ActorRef[RainGauge.Event]) extends Event with CborSerializable
-  private case class FireStationsUpdated(newSet: Set[ActorRef[FireStation.Event]]) extends Event
-  case class ZoneRequestFireStationToRainGauge(fireStation: ActorRef[FireStation.Event]) extends Event with CborSerializable
+  private case class ZoneRequestRainGaugeToAnother(zone: Int, rainGauge: ActorRef[RainGaugeActor.Event]) extends Event with CborSerializable
+  private case class FireStationsUpdated(newSet: Set[ActorRef[FireStationActor.Event]]) extends Event
+  case class ZoneRequestFireStationToRainGauge(fireStation: ActorRef[FireStationActor.Event]) extends Event with CborSerializable
   private case class Tick() extends Event
   private case class Request(replyTo: ActorRef[Response]) extends Event with CborSerializable
   private case class Response(value: Double) extends Event with CborSerializable
   private case class ReceiveState(state: ResponseState) extends Event with CborSerializable
 
-  val ListenerServiceKey: ServiceKey[RainGauge.Event] = ServiceKey[RainGauge.Event]("RainGauge")
+  val ListenerServiceKey: ServiceKey[RainGaugeActor.Event] = ServiceKey[RainGaugeActor.Event]("RainGauge")
   val ALARM_THRESHOLD = 0.60
 
   def apply(zone: Int = 1): Behavior[Event] =
@@ -38,9 +38,9 @@ object RainGauge:
       Behaviors withTimers { timers =>
 
         val subscriptionAdapter = ctx.messageAdapter[Receptionist.Listing] {
-          case RainGauge.ListenerServiceKey.Listing(newGauges) =>
+          case RainGaugeActor.ListenerServiceKey.Listing(newGauges) =>
             RainGaugesUpdated(newGauges)
-          case FireStation.FireStationServiceKey.Listing(newFireStations) =>
+          case FireStationActor.FireStationServiceKey.Listing(newFireStations) =>
             FireStationsUpdated(newFireStations)
         }
         ctx.system.receptionist ! Receptionist.Subscribe(ListenerServiceKey, subscriptionAdapter)
@@ -54,11 +54,11 @@ object RainGauge:
     }
 
   private def running(ctx: ActorContext[Event],
-                      rainGauges: Set[ActorRef[RainGauge.Event]],
-                      fireStations: Set[ActorRef[FireStation.Event]],
+                      rainGauges: Set[ActorRef[RainGaugeActor.Event]],
+                      fireStations: Set[ActorRef[FireStationActor.Event]],
                       lastValue: Double,
                       tmpValues: List[ResponseState],
-                      zone: Int = 0): Behavior[RainGauge.Event] =
+                      zone: Int = 0): Behavior[RainGaugeActor.Event] =
 
     def checkAlarmCondition(values: List[ResponseState]): Boolean =
       values.count { case Ok(true) => true ; case _ => false } >= (rainGauges.size/2 + 1)
@@ -74,7 +74,7 @@ object RainGauge:
         else
           running(ctx, rainGauges, fireStations, lastValue, tmpValues, zone)
       case FireStationsUpdated(stations) =>
-        stations foreach { _ ! FireStation.ZoneRequestRainGaugeToFireStation(zone, ctx.self) }
+        stations foreach { _ ! FireStationActor.ZoneRequestRainGaugeToFireStation(zone, ctx.self) }
         Behaviors.same
       case ZoneRequestFireStationToRainGauge(fireStation) =>
         running(ctx, rainGauges, fireStations + fireStation, lastValue, tmpValues, zone)

@@ -4,8 +4,8 @@ import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import cluster.CborSerializable
-import cluster.firestation.FireStation
-import cluster.firestation.FireStation.{FireStationServiceKey}
+import cluster.firestation.FireStationActor
+import cluster.firestation.FireStationActor.FireStationServiceKey
 import model.{Costants, RectangleBounds, Zone, ZoneState}
 import view.AppView
 
@@ -13,7 +13,7 @@ import scala.util.Random
 
 object ViewActor:
   sealed trait Event
-  private case class FireStationsUpdated(newStations: Set[ActorRef[FireStation.Event]]) extends Event
+  private case class FireStationsUpdated(newStations: Set[ActorRef[FireStationActor.Event]]) extends Event
   case class AlarmOn(zoneID: Int) extends Event with CborSerializable
   case class AlarmOff(zoneID: Int) extends Event with CborSerializable
   case class ManageAlarm(zoneID: Int) extends Event with CborSerializable
@@ -31,7 +31,7 @@ object ViewActor:
       running(ctx, IndexedSeq.empty , view, zones)
     }
 
-  private def running(ctx: ActorContext[ViewActor.Event], fireStations: IndexedSeq[ActorRef[FireStation.Event]],  view: AppView, zones: List[Zone]): Behavior[ViewActor.Event] =
+  private def running(ctx: ActorContext[ViewActor.Event], fireStations: IndexedSeq[ActorRef[FireStationActor.Event]], view: AppView, zones: List[Zone]): Behavior[ViewActor.Event] =
     Behaviors receiveMessage { msg => msg match
       case AlarmOn(zoneID) =>
         ctx.log.info(s"Zone $zoneID has alarm on")
@@ -46,7 +46,7 @@ object ViewActor:
         running(ctx, newStations.toIndexedSeq, view, zones)
       case ManageAlarm(zoneID) =>
         ctx.log.info(s"Zone $zoneID is managing alarm")
-        fireStations foreach { _ ! FireStation.NotifyAlarmOff()}
+        fireStations foreach { _ ! FireStationActor.NotifyAlarmOff()}
         updateZone(zoneID, ZoneState.Managing, view, zones)
         running(ctx, fireStations, view, zones)
       case _ => Behaviors.same
