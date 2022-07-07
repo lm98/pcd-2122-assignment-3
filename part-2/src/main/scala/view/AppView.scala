@@ -2,7 +2,7 @@ package view
 
 import actors.ViewActor
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
-import model.{Costants, RainGauge, RainGaugeState, RectangleBounds, Zone, ZoneState}
+import model.{Costants, RainGauge, RectangleBounds, Zone, ZoneState}
 
 import scala.util.Random
 import com.sun.java.accessibility.util.AWTEventMonitor.{addActionListener, addWindowListener}
@@ -77,9 +77,7 @@ class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width
 //        g2 drawString (s"Rain Gauges: ${zone.numDevices}", zone.bounds.x0 + 10, zone.bounds.y0 + 30)
         zone.pluviometers.foreach(p => {
           g2.fillOval(p.x, p.y, 10, 10)
-          p.state match
-            case RainGaugeState.Ok => g2.setColor(java.awt.Color.BLACK)
-            case RainGaugeState.Alarm => g2.setColor(java.awt.Color.BLUE)
+          g2.setColor(java.awt.Color.BLACK)
         })
         g2 drawRect(zone.bounds.x0, zone.bounds.y0, zone.bounds.width, zone.bounds.height)
       })
