@@ -46,7 +46,7 @@ object ViewActor:
         running(ctx, newStations.toIndexedSeq, view, zones)
       case ManageAlarm(zoneID) =>
         ctx.log.info(s"Zone $zoneID is managing alarm")
-        fireStations foreach { _ ! FireStationActor.NotifyAlarmOff()}
+        fireStations foreach { _ ! FireStationActor.ManageAlarm()}
         updateZone(zoneID, ZoneState.Managing, view, zones)
         running(ctx, fireStations, view, zones)
       case _ => Behaviors.same
