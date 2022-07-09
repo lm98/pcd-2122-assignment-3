@@ -2,7 +2,7 @@ package view
 
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import cluster.view.ViewActor
-import model.Model.*
+import model.*
 
 import scala.util.Random
 import com.sun.java.accessibility.util.AWTEventMonitor.{addActionListener, addWindowListener}
@@ -57,12 +57,12 @@ class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width
           case ZoneState.Ok => g2.setColor(java.awt.Color.GREEN)
           case ZoneState.Alarm => g2.setColor(java.awt.Color.RED)
           case ZoneState.Managing => g2.setColor(java.awt.Color.CYAN)
-        g2 fillRect(zone.bounds.x0, zone.bounds.y0, zone.bounds.width, zone.bounds.height)
+        g2 fillRect(zone.bounds.topLeft.x, zone.bounds.topLeft.y, zone.bounds.width, zone.bounds.height)
         g2.setColor(java.awt.Color.BLACK)
-        g2 drawString(s"ZONE ${zone.id} - ${zone.state.toString}", zone.bounds.x0 + 5, zone.bounds.y0 + 15)
+        g2 drawString(s"ZONE ${zone.id} - ${zone.state.toString}", zone.bounds.topLeft.x + 5, zone.bounds.topLeft.y + 15)
 //        g2 drawString (s"Rain Gauges: ${zone.numDevices}", zone.bounds.x0 + 10, zone.bounds.y0 + 30)
         zone.rainGauges.foreach(p => {
-          g2.fillOval(p.pos.getX.toInt, p.pos.getY.toInt, 10, 10)
+          g2.fillOval(p.pos.x, p.pos.y, 10, 10)
           g2.setColor(java.awt.Color.BLACK)
         })
         g2 drawRect(zone.bounds.x0, zone.bounds.y0, zone.bounds.width, zone.bounds.height)
