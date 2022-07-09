@@ -8,7 +8,7 @@ import cluster.CborSerializable
 import cluster.firestation.FireStationActor
 import cluster.firestation.FireStationActor.{FireStationServiceKey, NotifyAlarmOn}
 import cluster.view.ViewActor
-import model.RainGauge
+import model.*
 
 import java.util.concurrent.ThreadLocalRandom
 import concurrent.duration.*
@@ -32,7 +32,6 @@ object RainGaugeActor:
   private case class Response(value: Double) extends Event with CborSerializable
   private case class ReceiveState(state: ResponseState) extends Event with CborSerializable
   private case class SendNewRainGauge(newSet: Set[ActorRef[Event]]) extends Event with CborSerializable
-  private case class AddNewRaingGauge(rainGauge: RainGauge) extends Event with CborSerializable
   private case class ViewUpdated(value: Set[ActorRef[ViewActor.Event]]) extends Event with CborSerializable
 
   val ListenerServiceKey: ServiceKey[RainGaugeActor.Event] = ServiceKey[RainGaugeActor.Event]("RainGauge")
@@ -78,8 +77,7 @@ object RainGaugeActor:
         gauges foreach { _ ! ZoneRequestRainGaugeToAnother(zone, ctx.self) }
         Behaviors.same
       case SendNewRainGauge(newSet) =>
-        val addGauge = new RainGauge(ctx.self.path.name(10), zone)
-        views foreach { _ => AddNewRaingGauge(addGauge)}
+        views foreach { _ => ViewActor.AddRainGauge()}
         running(ctx, newSet, fireStations, views, lastValue, tmpValues, zone)
       case ZoneRequestRainGaugeToAnother(originZone, newRainGauge) =>
         if originZone == zone then
