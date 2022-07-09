@@ -1,15 +1,16 @@
 package model
 
 import scala.util.Random
+import model.RainGauge
+
 
 enum ZoneState:
   case Ok
   case Alarm
   case Managing
 
-class Zone(val id: Int, var state: ZoneState, val numDevices: Int, val bounds: RectangleBounds):
-  val rand = new Random()
-  var pluviometers = for x <- 0 until numDevices yield
-    new RainGauge(x + 1, id, rand.between(bounds.x0 + 10, bounds.getX1 - 10), rand.between(bounds.y0 + 10, bounds.getY1 - 10))
-
+class Zone(val id: Int, var state: ZoneState, val bounds: RectangleBounds):
+  var rainGauges: List[RainGauge] = List().empty
   def changeState(newState: ZoneState): Unit = state = newState
+  def addRainGauge(rainGauge: RainGauge): Unit =
+    rainGauges = rainGauges :+ rainGauge

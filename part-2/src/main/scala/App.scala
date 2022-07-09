@@ -1,9 +1,9 @@
-import actors.ViewActor
 import akka.actor.typed.{ActorSystem, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.cluster.typed.Cluster
 import cluster.firestation.FireStationActor
 import cluster.raingauge.RainGaugeActor
+import cluster.view.ViewActor
 import com.typesafe.config.ConfigFactory
 import model.{Costants, RectangleBounds, Zone, ZoneState}
 
@@ -40,7 +40,7 @@ object App:
       c <- 0 until cols
     yield
       x = x + 1
-      new Zone(x, ZoneState.Ok, 3, new RectangleBounds(c *  Costants.defalutWidth, r * Costants.defaultHeight))
+      new Zone(x, ZoneState.Ok, new RectangleBounds(c *  Costants.defalutWidth, r * Costants.defaultHeight))
     zones.toList
 
   def main(args: Array[String]): Unit =

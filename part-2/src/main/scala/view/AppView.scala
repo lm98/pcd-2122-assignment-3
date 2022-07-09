@@ -1,7 +1,7 @@
 package view
 
-import actors.ViewActor
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
+import cluster.view.ViewActor
 import model.{Costants, RainGauge, RectangleBounds, Zone, ZoneState}
 
 import scala.util.Random
@@ -52,20 +52,6 @@ class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width
       g2 setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
       g2 setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
       g2 setColor java.awt.Color.BLACK
-      /*zone.state match
-        case ZoneState.Ok => g2.setColor(java.awt.Color.GREEN)
-        case ZoneState.Alarm => g2.setColor(java.awt.Color.RED)
-        case ZoneState.Managing => g2.setColor(java.awt.Color.CYAN)
-      g2 fillRect(zone.bounds.x0, zone.bounds.y0, zone.bounds.width, zone.bounds.height)
-      g2.setColor(java.awt.Color.BLACK)
-      g2 drawString(s"ZONE ${zone.id} - ${zone.state.toString}", zone.bounds.x0 + 5, zone.bounds.y0 + 15)
-      zone.pluviometers.foreach(p => {
-        g2.fillOval(p.x, p.y, 10, 10)
-        p.state match
-          case PluviometerState.Ok => g2.setColor(java.awt.Color.BLACK)
-          case PluviometerState.Alarm => g2.setColor(java.awt.Color.BLUE)
-      })
-      g2 drawRect(zone.bounds.x0, zone.bounds.y0, zone.bounds.width, zone.bounds.height)*/
       zones.foreach(zone => {
         zone.state match
           case ZoneState.Ok => g2.setColor(java.awt.Color.GREEN)
@@ -75,8 +61,8 @@ class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width
         g2.setColor(java.awt.Color.BLACK)
         g2 drawString(s"ZONE ${zone.id} - ${zone.state.toString}", zone.bounds.x0 + 5, zone.bounds.y0 + 15)
 //        g2 drawString (s"Rain Gauges: ${zone.numDevices}", zone.bounds.x0 + 10, zone.bounds.y0 + 30)
-        zone.pluviometers.foreach(p => {
-          g2.fillOval(p.x, p.y, 10, 10)
+        zone.rainGauges.foreach(p => {
+          g2.fillOval(p.pos.getX.toInt, p.pos.getY.toInt, 10, 10)
           g2.setColor(java.awt.Color.BLACK)
         })
         g2 drawRect(zone.bounds.x0, zone.bounds.y0, zone.bounds.width, zone.bounds.height)
@@ -88,7 +74,7 @@ class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width
     preferredSize = Dimension(600,400)
     zones.foreach(zone => {
       textAreas = textAreas.+((zone.id, new TextField(){
-        text = s"\tZone ${zone.id}\tRain gauges = ${zone.pluviometers.size}\tStatus: ${zone.state.toString} "
+        text = s"\tZone ${zone.id}\tRain gauges = ${zone.rainGauges.size}\tStatus: ${zone.state.toString} "
         editable = false
         preferredSize = Dimension(50,50)
       }))
@@ -106,7 +92,7 @@ class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width
 
     def display(): Unit =
       zones.foreach(zone =>
-        textAreas(zone.id).text = s"\tZone ${zone.id}\tRain gauges = ${zone.pluviometers.size}\tStatus: ${zone.state.toString} "
+        textAreas(zone.id).text = s"\tZone ${zone.id}\tRain gauges = ${zone.rainGauges.size}\tStatus: ${zone.state.toString} "
         zone.state match
           case ZoneState.Ok =>
             buttons(zone.id).enabled = false;

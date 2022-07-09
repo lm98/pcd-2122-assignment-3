@@ -1,11 +1,11 @@
 package cluster.firestation
 
-import actors.ViewActor
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import cluster.CborSerializable
 import cluster.raingauge.RainGaugeActor
+import cluster.view.ViewActor
 
 import concurrent.duration.*
 
@@ -20,10 +20,10 @@ object FireStationActor:
   def apply(zone: Int = 1): Behavior[FireStationActor.Event] =
     Behaviors setup { ctx =>
       val subscriptionAdapter = ctx.messageAdapter[Receptionist.Listing] {
-        case ViewActor.viewActorServiceKey.Listing(newSet) =>
+        case ViewActor.ViewActorServiceKey.Listing(newSet) =>
           ViewActorsUpdated(newSet)
       }
-      ctx.system.receptionist ! Receptionist.Subscribe(ViewActor.viewActorServiceKey, subscriptionAdapter)
+      ctx.system.receptionist ! Receptionist.Subscribe(ViewActor.ViewActorServiceKey, subscriptionAdapter)
       ctx.system.receptionist ! Receptionist.Register(FireStationServiceKey, ctx.self)
 
       running(ctx, Set.empty, IndexedSeq.empty, 0, zone)
