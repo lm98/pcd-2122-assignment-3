@@ -58,14 +58,15 @@ class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width
           case ZoneState.Alarm => g2.setColor(java.awt.Color.RED)
           case ZoneState.Managing => g2.setColor(java.awt.Color.CYAN)
         g2 fillRect(zone.bounds.topLeft.x, zone.bounds.topLeft.y, zone.bounds.width, zone.bounds.height)
-        g2.setColor(java.awt.Color.BLACK)
+        g2 setColor java.awt.Color.BLACK
+        g2 drawRect(zone.bounds.topLeft.x, zone.bounds.topLeft.y, zone.bounds.width, zone.bounds.height)
         g2 drawString(s"ZONE ${zone.id} - ${zone.zoneState.toString}", zone.bounds.topLeft.x + 5, zone.bounds.topLeft.y + 15)
-//        g2 drawString (s"Rain Gauges: ${zone.numDevices}", zone.bounds.x0 + 10, zone.bounds.y0 + 30)
         zone.rainGauges.foreach(p => {
           g2.fillOval(p.pos.x, p.pos.y, 10, 10)
           g2.setColor(java.awt.Color.BLACK)
         })
-        g2 drawRect(zone.bounds.topLeft.x, zone.bounds.topLeft.y, zone.bounds.width, zone.bounds.height)
+        g2 fillRect(zone.fireStation.pos.x, zone.fireStation.pos.y, 10, 10)
+        g2 setColor java.awt.Color.BLUE
       })
 
   sealed class ManagePanel extends BoxPanel(Orientation.Vertical):
@@ -74,7 +75,7 @@ class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width
     preferredSize = Dimension(600,400)
     zones.foreach(zone => {
       textAreas = textAreas.+((zone.id, new TextField(){
-        text = s"\tZone ${zone.id}\tRain gauges = ${zone.rainGauges.size}\tStatus: ${zone.zoneState.toString} "
+        text = s"Zone ${zone.id}\tRain gauges = ${zone.rainGauges.size}\tStatus: ${zone.zoneState.toString}\tFire Station: ${zone.fireStation.fireStationState.toString}"
         editable = false
         preferredSize = Dimension(50,50)
       }))
@@ -82,7 +83,6 @@ class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width
         visible = false
         action = new Action(s"Manage Zone ${zone.id}"):
           override def apply(): Unit =
-//            enabled = false
             viewActor ! ViewActor.ManageAlarm(zone.id)
         })
       )
