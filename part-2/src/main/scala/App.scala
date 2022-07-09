@@ -5,7 +5,7 @@ import cluster.firestation.FireStationActor
 import cluster.raingauge.RainGaugeActor
 import cluster.view.ViewActor
 import com.typesafe.config.ConfigFactory
-import model.{Costants, RectangleBounds, Zone, ZoneState}
+import model.{Costants, FireStation, FireStationState, Point2D, RectangleBounds, Zone, ZoneState}
 
 import scala.util.Random
 
@@ -40,7 +40,7 @@ object App:
       c <- 0 until cols
     yield
       x = x + 1
-      new Zone(x, ZoneState.Ok, new RectangleBounds(c *  Costants.defalutWidth, r * Costants.defaultHeight))
+      Zone(x, ZoneState.Ok, FireStation(x, FireStationState.Free, Point2D(rand.between(c *  Costants.defalutWidth, r * Costants.defaultHeight), rand.between(c *  Costants.defalutWidth, r * Costants.defaultHeight))), RectangleBounds(Point2D(c *  Costants.defalutWidth, r * Costants.defaultHeight)))
     zones.toList
 
   def main(args: Array[String]): Unit =
