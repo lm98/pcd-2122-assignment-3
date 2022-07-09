@@ -2,7 +2,7 @@ package model
 
 import java.awt.geom.Point2D
 
-class RainGauge(val id: Int, val zoneId: Int):
+class RainGauge(val zoneId: Int):
   var pos: Point2D = new Point2D:
     override def getX: Double = pos.getX
 
