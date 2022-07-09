@@ -17,14 +17,13 @@ object ViewActor:
   sealed trait Event
 
   private case class FireStationsUpdated(newStations: Set[ActorRef[FireStationActor.Event]]) extends Event
-  private case class AlarmOn(zoneID: Int) extends Event with CborSerializable
-  private case class AlarmOff(zoneID: Int) extends Event with CborSerializable
-  private case class ManageAlarm(zoneID: Int) extends Event with CborSerializable
+  case class AlarmOn(zoneID: Int) extends Event with CborSerializable
+  case class AlarmOff(zoneID: Int) extends Event with CborSerializable
+  case class ManageAlarm(zoneID: Int) extends Event with CborSerializable
   private case class AddRainGauge(rainGauge: RainGauge) extends Event with CborSerializable
   private case class RainGaugesUpdated(newSet: Set[ActorRef[RainGaugeActor.Event]]) extends Event with CborSerializable
   private case class ViewUpdated(newSet: Set[ActorRef[Event]]) extends Event with CborSerializable
-
-  case class AddFireStation()
+  case class AddFireStation() extends Event with CborSerializable
 
   val ViewActorServiceKey: ServiceKey[ViewActor.Event] = ServiceKey[ViewActor.Event]("ViewService")
   var zoneList: List[Zone] = List()
@@ -74,11 +73,10 @@ object ViewActor:
         case ManageAlarm(zoneID) =>
           ctx.log.info(s"Zone $zoneID is managing alarm")
           fireStations foreach {
-            _ ! FireStationActor.NotifyAlarmOff()
+            _ ! FireStationActor.ManageAlarm()
           }
           updateZone(zoneID, ZoneState.Managing, views)
           running(ctx, fireStations, rainGauges, views)
-        case _ => Behaviors.same
     }
 
   private def updateZone(zoneID: Int, newState: ZoneState, views: IndexedSeq[ActorRef[ViewActor.Event]]): Unit =
