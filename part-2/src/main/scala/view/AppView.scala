@@ -2,7 +2,7 @@ package view
 
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
 import cluster.view.ViewActor
-import model.{Costants, RainGauge, RectangleBounds, Zone, ZoneState}
+import model.Model.*
 
 import scala.util.Random
 import com.sun.java.accessibility.util.AWTEventMonitor.{addActionListener, addWindowListener}

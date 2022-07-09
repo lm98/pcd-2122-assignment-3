@@ -7,7 +7,7 @@ import cluster.CborSerializable
 import cluster.firestation.FireStationActor
 import cluster.firestation.FireStationActor.FireStationServiceKey
 import cluster.raingauge.RainGaugeActor
-import model.{RainGauge, RectangleBounds, Zone, ZoneState}
+import model.Model.*
 import view.AppView
 
 import scala.collection.immutable.IndexedSeq
