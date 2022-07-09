@@ -27,11 +27,11 @@ object ViewActor:
 
   val ViewActorServiceKey: ServiceKey[ViewActor.Event] = ServiceKey[ViewActor.Event]("ViewService")
   var zoneList: List[Zone] = List()
-  val viewList: List[AppView] = List()
+  var viewList: List[AppView] = List()
   def apply(zones: List[Zone]): Behavior[ViewActor.Event] =
     Behaviors setup { ctx =>
       zoneList = zones
-      viewList :+ new AppView(zones, ctx.self)
+      viewList = viewList :+ AppView(zoneList, ctx.self)
       val subscriptionAdapter = ctx.messageAdapter[Receptionist.Listing] {
         case FireStationServiceKey.Listing(fireStations) => FireStationsUpdated(fireStations)
         case RainGaugeActor.ListenerServiceKey.Listing(newGauge) => RainGaugesUpdated(newGauge)
@@ -55,39 +55,21 @@ object ViewActor:
         case FireStationsUpdated(newStations) =>
           ctx.log.info(s"Fire stations have been updated")
           running(ctx, newStations.toIndexedSeq, rainGauges, views)
-        case AddRainGauge(/*rainGauge*/) =>
-          ctx.log.info(s" === ADD Rain gauges ===") //TODO DOES NOT ENTER
-//          setRainGaugesBounds(rainGauge)
-//          addRaingGaugeToZone(rainGauge)
-//          updateZone(rainGauge.zoneID, ZoneState.Ok, views)
-          running(ctx, fireStations, rainGauges, views)
-        case AddFireStation() => ???
         case AlarmOn(zoneID) =>
           ctx.log.info(s"Zone $zoneID has alarm on")
-          updateZone(zoneID, ZoneState.Alarm, views)
+          updateZone(zoneID, ZoneState.Alarm)
           running(ctx, fireStations, rainGauges, views)
         case AlarmOff(zoneID) =>
           ctx.log.info(s"Zone $zoneID has alarm off")
-          updateZone(zoneID, ZoneState.Ok, views)
+          updateZone(zoneID, ZoneState.Ok)
           running(ctx, fireStations, rainGauges, views)
         case ManageAlarm(zoneID) =>
           ctx.log.info(s"Zone $zoneID is managing alarm")
-          fireStations foreach {
-            _ ! FireStationActor.ManageAlarm()
-          }
-          updateZone(zoneID, ZoneState.Managing, views)
+          fireStations foreach { _ ! FireStationActor.ManageAlarm() }
+          updateZone(zoneID, ZoneState.Managing)
           running(ctx, fireStations, rainGauges, views)
     }
 
-  private def updateZone(zoneID: Int, newState: ZoneState, views: IndexedSeq[ActorRef[ViewActor.Event]]): Unit =
+  private def updateZone(zoneID: Int, newState: ZoneState): Unit =
     zoneList.filter(z => z.id.equals(zoneID)).foreach(u => u.changeState(newState))
     viewList.foreach(v => v.updateGui(zoneList))
-
- /* private def setRainGaugesBounds(rainGauge: RainGauge): Unit =
-    var bounds: RectangleBounds = new RectangleBounds(0, 0)
-    val rand = new Random()
-    zoneList.filter(z => z.id.equals(rainGauge.zoneID)).foreach(z => bounds = z.bounds)
-    rainGauge.pos.setLocation(rand.between(bounds.x0 + 10, bounds.getX1 - 10), rand.between(bounds.y0 + 10, bounds.getY1 - 10))
-*/
-  private def addRaingGaugeToZone(rainGauge: RainGauge): Unit =
-    zoneList.filter(z => z.id.equals(rainGauge.zoneID)).foreach(z => z.addRainGauge(rainGauge))

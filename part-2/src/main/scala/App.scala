@@ -10,7 +10,9 @@ import model.{Costants, FireStation, FireStationState, Point2D, RainGauge, Recta
 import scala.language.postfixOps
 import scala.util.Random
 
+
 object App:
+  val defPaddingValue: Int = 10
   var zones: List[Zone] = List.empty
   object RootBehavior:
     def apply(): Behavior[Nothing] = Behaviors.setup[Nothing] { ctx =>
@@ -36,22 +38,22 @@ object App:
     val rows: Int = 2
     val cols: Int = 3
     var id: Int = 0
+    var rainGauges: List[RainGauge] = List()
     val zones = for
       r <- 0 until rows
       c <- 0 until cols
     yield
       id = id + 1
       val bounds = RectangleBounds(Point2D(c * Costants.defalutWidth , r * Costants.defaultHeight)) //Point2D(rand.between(c * Costants.defaultHeight, r * Costants.defalutWidth), rand.between((c + 1) * Costants.defaultHeight - 1, (r + 1) * Costants.defalutWidth - 1))
-      Zone(id, ZoneState.Ok, FireStation(id, FireStationState.Free, Point2D().createRandom(bounds.topLeft.x, bounds.topLeft.y, bounds.bottomRight.x, bounds.bottomRight.y)), bounds)
-    initRainGauges()
+      rainGauges = initRainGauges(id, bounds)
+      Zone(id, ZoneState.Ok, FireStation(id, FireStationState.Free, Point2D().createRandom(bounds.topLeft.x + defPaddingValue, bounds.bottomRight.x - defPaddingValue, bounds.topLeft.y + defPaddingValue, bounds.bottomRight.y - defPaddingValue)), bounds, rainGauges)
     zones.toList
 
-  def initRainGauges(): Unit =
-    zones.foreach(zone =>
-      val gauges = for _ <- 0 until 3 yield
-        RainGauge(zone.id, Point2D().createRandom(zone.bounds.topLeft.x, zone.bounds.topLeft.y, zone.bounds.bottomRight.x, zone.bounds.bottomRight.y))
-      zone.rainGauges = gauges.toList
-    )
+  def initRainGauges(zoneID: Int, bounds: RectangleBounds): List[RainGauge] =
+    val gauges = for _ <- 0 until 3 yield
+      RainGauge(zoneID, Point2D().createRandom(bounds.topLeft.x + defPaddingValue, bounds.bottomRight.x - defPaddingValue, bounds.topLeft.y + defPaddingValue, bounds.bottomRight.y - defPaddingValue))
+    gauges.toList
+
 
   def main(args: Array[String]): Unit =
     if args.isEmpty then

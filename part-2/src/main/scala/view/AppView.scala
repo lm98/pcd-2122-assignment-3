@@ -61,8 +61,8 @@ class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width
         g2 setColor java.awt.Color.BLACK
         g2 drawRect(zone.bounds.topLeft.x, zone.bounds.topLeft.y, zone.bounds.width, zone.bounds.height)
         g2 drawString(s"ZONE ${zone.id} - ${zone.zoneState.toString}", zone.bounds.topLeft.x + 5, zone.bounds.topLeft.y + 15)
-        zone.rainGauges.foreach(p => {
-          g2.fillOval(p.pos.x, p.pos.y, 10, 10)
+        zone.rainGauges.foreach(r => {
+          g2.fillOval(r.pos.x, r.pos.y, 10, 10)
           g2.setColor(java.awt.Color.BLACK)
         })
         g2 fillRect(zone.fireStation.pos.x, zone.fireStation.pos.y, 10, 10)
@@ -92,7 +92,7 @@ class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width
 
     def display(): Unit =
       zones.foreach(zone =>
-        textAreas(zone.id).text = s"\tZone ${zone.id}\tRain gauges = ${zone.rainGauges.size}\tStatus: ${zone.zoneState.toString} "
+        textAreas(zone.id).text = s"Zone ${zone.id}\tRain gauges = ${zone.rainGauges.size}\tStatus: ${zone.zoneState.toString}\tFire Station: ${zone.fireStation.fireStationState.toString}"
         zone.zoneState match
           case ZoneState.Ok =>
             buttons(zone.id).enabled = false;
