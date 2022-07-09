@@ -57,9 +57,9 @@ object ViewActor:
           running(ctx, newStations.toIndexedSeq, rainGauges, views)
         case AddRainGauge(rainGauge) =>
           ctx.log.info(s" === ADD Rain gauges ===") //TODO DOES NOT ENTER
-          setRainGaugesBounds(rainGauge)
+//          setRainGaugesBounds(rainGauge)
           addRaingGaugeToZone(rainGauge)
-          updateZone(rainGauge.zoneId, ZoneState.Ok, views)
+          updateZone(rainGauge.zoneID, ZoneState.Ok, views)
           running(ctx, fireStations, rainGauges, views)
         case AddFireStation() => ???
         case AlarmOn(zoneID) =>
@@ -83,11 +83,11 @@ object ViewActor:
     zoneList.filter(z => z.id.equals(zoneID)).foreach(u => u.changeState(newState))
     viewList.foreach(v => v.updateGui(zoneList))
 
-  private def setRainGaugesBounds(rainGauge: RainGauge): Unit =
+ /* private def setRainGaugesBounds(rainGauge: RainGauge): Unit =
     var bounds: RectangleBounds = new RectangleBounds(0, 0)
     val rand = new Random()
-    zoneList.filter(z => z.id.equals(rainGauge.zoneId)).foreach(z => bounds = z.bounds)
+    zoneList.filter(z => z.id.equals(rainGauge.zoneID)).foreach(z => bounds = z.bounds)
     rainGauge.pos.setLocation(rand.between(bounds.x0 + 10, bounds.getX1 - 10), rand.between(bounds.y0 + 10, bounds.getY1 - 10))
-
+*/
   private def addRaingGaugeToZone(rainGauge: RainGauge): Unit =
-    zoneList.filter(z => z.id.equals(rainGauge.zoneId)).foreach(z => z.addRainGauge(rainGauge))
+    zoneList.filter(z => z.id.equals(rainGauge.zoneID)).foreach(z => z.addRainGauge(rainGauge))
