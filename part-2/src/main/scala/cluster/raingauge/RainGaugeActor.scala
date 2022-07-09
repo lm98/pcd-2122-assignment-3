@@ -52,7 +52,7 @@ object RainGaugeActor:
         ctx.system.receptionist ! Receptionist.Subscribe(FireStationServiceKey, subscriptionAdapter)
         ctx.system.receptionist ! Receptionist.Register(ListenerServiceKey, ctx.self)
 
-        timers.startTimerWithFixedDelay(Tick(), Tick(), 5.seconds)
+        timers.startTimerWithFixedDelay(Tick(), Tick(), 2.seconds)
 
         running(ctx, Set.empty, Set.empty, Set.empty, 0.0, List.empty, zone)
       }
