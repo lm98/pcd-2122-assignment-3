@@ -16,7 +16,6 @@ object App:
     def apply(): Behavior[Nothing] = Behaviors.setup[Nothing] { ctx =>
       val cluster = Cluster(ctx.system)
       zones = initZones()
-//      initRainGauges() //todo per finta
       cluster.selfMember.roles.head match
         case "rainGauge" => ctx.spawn(RainGaugeActor(), "RainGauge"+Random.nextInt(10))
         case "fireStation" => ctx.spawn(FireStationActor(), "FireStation")
@@ -52,9 +51,8 @@ object App:
       val gauges = for _ <- 0 until 3 yield
         RainGauge(zone.id, Point2D().createRandom(zone.bounds.topLeft.x, zone.bounds.topLeft.y, zone.bounds.bottomRight.x, zone.bounds.bottomRight.y))
       zone.rainGauges = gauges.toList
-      println(s"zone ${zone.rainGauges}")
     )
-  
+
   def main(args: Array[String]): Unit =
     if args.isEmpty then
       startup("rainGauge", 25251)

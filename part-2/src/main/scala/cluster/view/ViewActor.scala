@@ -20,7 +20,7 @@ object ViewActor:
   case class AlarmOn(zoneID: Int) extends Event with CborSerializable
   case class AlarmOff(zoneID: Int) extends Event with CborSerializable
   case class ManageAlarm(zoneID: Int) extends Event with CborSerializable
-  private case class AddRainGauge(rainGauge: RainGauge) extends Event with CborSerializable
+  case class AddRainGauge(/*rainGauge: RainGauge*/) extends Event with CborSerializable
   private case class RainGaugesUpdated(newSet: Set[ActorRef[RainGaugeActor.Event]]) extends Event with CborSerializable
   private case class ViewUpdated(newSet: Set[ActorRef[Event]]) extends Event with CborSerializable
   case class AddFireStation() extends Event with CborSerializable
@@ -55,11 +55,11 @@ object ViewActor:
         case FireStationsUpdated(newStations) =>
           ctx.log.info(s"Fire stations have been updated")
           running(ctx, newStations.toIndexedSeq, rainGauges, views)
-        case AddRainGauge(rainGauge) =>
+        case AddRainGauge(/*rainGauge*/) =>
           ctx.log.info(s" === ADD Rain gauges ===") //TODO DOES NOT ENTER
 //          setRainGaugesBounds(rainGauge)
-          addRaingGaugeToZone(rainGauge)
-          updateZone(rainGauge.zoneID, ZoneState.Ok, views)
+//          addRaingGaugeToZone(rainGauge)
+//          updateZone(rainGauge.zoneID, ZoneState.Ok, views)
           running(ctx, fireStations, rainGauges, views)
         case AddFireStation() => ???
         case AlarmOn(zoneID) =>
