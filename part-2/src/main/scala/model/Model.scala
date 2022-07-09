@@ -14,17 +14,14 @@ enum ZoneState:
 
 enum FireStationState:
   case Free
-  case Occupied
+  case Busy
 
 case class RainGauge(zoneID: Int, pos: Point2D)
 
-case class Zone(id: Int, var zoneState: ZoneState, var fireStation: FireStation, bounds: RectangleBounds):
-  var rainGauges: List[RainGauge] = List()
-  def changeState(newState: ZoneState): Unit = zoneState = newState
+case class Zone(id: Int, var state: ZoneState, var fireStation: FireStation, bounds: RectangleBounds, var rainGauges: List[RainGauge] = List()):
+  def changeState(newState: ZoneState): Unit = state = newState
   def addRainGauge(rainGauge: RainGauge): Unit = rainGauges = rainGauges :+ rainGauge
   def setFireStation(fs: FireStation): Unit = fireStation = fs
-  @targetName("Zone")
-  def :+(rainGauge: RainGauge): Unit = rainGauges :+ rainGauge
 
 case class RectangleBounds(topLeft: Point2D, height: Int = Costants.defaultHeight, width: Int = Costants.defalutWidth):
   def apply(topLeft: Point2D, height: Int, width: Int): RectangleBounds = RectangleBounds(topLeft, height, width)
@@ -33,15 +30,15 @@ case class RectangleBounds(topLeft: Point2D, height: Int = Costants.defaultHeigh
 case class Point2D(var x: Int = 0, var y: Int = 0):
   def createRandom(tx: Int, ty: Int, bx: Int, by: Int): Point2D =
     val rand = new Random()
-    if tx < ty then
+    if tx <= ty then
       x = rand.between(tx, ty + 1)
     else
       x = rand.between(ty, tx + 1)
-    if bx < by then
+    if bx <= by then
       y = rand.between(bx, by + 1)
     else
       y = rand.between(by, bx + 1)
     Point2D(x, y)
 
-case class FireStation(zoneID: Int, var fireStationState: FireStationState, pos: Point2D):
-  def changeState(newState: FireStationState): Unit = fireStationState = newState
+case class FireStation(zoneID: Int, var state: FireStationState, pos: Point2D):
+  def changeState(newState: FireStationState): Unit = state = newState

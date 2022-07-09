@@ -77,7 +77,7 @@ object RainGaugeActor:
         gauges foreach { _ ! ZoneRequestRainGaugeToAnother(zone, ctx.self) }
         Behaviors.same
       case SendNewRainGauge(newSet) =>
-        views foreach { _ => ViewActor.AddRainGauge()}
+        views foreach { _ => ViewActor.RainGaugesUpdated(newSet)}
         running(ctx, newSet, fireStations, views, lastValue, tmpValues, zone)
       case ZoneRequestRainGaugeToAnother(originZone, newRainGauge) =>
         if originZone == zone then

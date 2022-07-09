@@ -35,11 +35,7 @@ class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width
   })
   override def updateGui(zs: List[Zone]): Unit =
     SwingUtilities.invokeLater(() =>
-      /*zones.filter(z => zone.id.equals(z.id)).foreach(u =>
-        u.changeState(zone.state)
-      )*/
       zones = zs
-//      zone.changeState(newZone.state)
       buttonsPanel.display()
       repaint()
     )
@@ -53,14 +49,14 @@ class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width
       g2 setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
       g2 setColor java.awt.Color.BLACK
       zones.foreach(zone => {
-        zone.zoneState match
+        zone.state match
           case ZoneState.Ok => g2.setColor(java.awt.Color.GREEN)
           case ZoneState.Alarm => g2.setColor(java.awt.Color.RED)
           case ZoneState.Managing => g2.setColor(java.awt.Color.CYAN)
         g2 fillRect(zone.bounds.topLeft.x, zone.bounds.topLeft.y, zone.bounds.width, zone.bounds.height)
         g2 setColor java.awt.Color.BLACK
         g2 drawRect(zone.bounds.topLeft.x, zone.bounds.topLeft.y, zone.bounds.width, zone.bounds.height)
-        g2 drawString(s"ZONE ${zone.id} - ${zone.zoneState.toString}", zone.bounds.topLeft.x + 5, zone.bounds.topLeft.y + 15)
+        g2 drawString(s"ZONE ${zone.id} - ${zone.state.toString}", zone.bounds.topLeft.x + 5, zone.bounds.topLeft.y + 15)
         zone.rainGauges.foreach(r => {
           g2.fillOval(r.pos.x, r.pos.y, 10, 10)
           g2.setColor(java.awt.Color.BLACK)
@@ -75,7 +71,7 @@ class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width
     preferredSize = Dimension(600,400)
     zones.foreach(zone => {
       textAreas = textAreas.+((zone.id, new TextField(){
-        text = s"Zone ${zone.id}\tRain gauges = ${zone.rainGauges.size}\tStatus: ${zone.zoneState.toString}\tFire Station: ${zone.fireStation.fireStationState.toString}"
+        text = s"Zone ${zone.id}\tRain gauges = ${zone.rainGauges.size}\tStatus: ${zone.state.toString}\tFire Station: ${zone.fireStation.state.toString}"
         editable = false
         preferredSize = Dimension(50,50)
       }))
@@ -92,8 +88,8 @@ class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width
 
     def display(): Unit =
       zones.foreach(zone =>
-        textAreas(zone.id).text = s"Zone ${zone.id}\tRain gauges = ${zone.rainGauges.size}\tStatus: ${zone.zoneState.toString}\tFire Station: ${zone.fireStation.fireStationState.toString}"
-        zone.zoneState match
+        textAreas(zone.id).text = s"Zone ${zone.id}\tRain gauges = ${zone.rainGauges.size}\tStatus: ${zone.state.toString}\tFire Station: ${zone.fireStation.state.toString}"
+        zone.state match
           case ZoneState.Ok =>
             buttons(zone.id).enabled = false;
             buttons(zone.id).visible = false
