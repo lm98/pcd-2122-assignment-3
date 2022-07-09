@@ -21,9 +21,11 @@ object ViewActor:
   case class AlarmOff(zoneID: Int) extends Event with CborSerializable
   case class ManageAlarm(zoneID: Int) extends Event with CborSerializable
   case class AddRainGauge(/*rainGauge: RainGauge*/) extends Event with CborSerializable
-  private case class RainGaugesUpdated(newSet: Set[ActorRef[RainGaugeActor.Event]]) extends Event with CborSerializable
+  case class RainGaugesUpdated(newSet: Set[ActorRef[RainGaugeActor.Event]]) extends Event with CborSerializable
   private case class ViewUpdated(newSet: Set[ActorRef[Event]]) extends Event with CborSerializable
   case class AddFireStation() extends Event with CborSerializable
+  case class FireStationBusy(zoneID: Int) extends Event with CborSerializable
+  case class FireStationFree(zoneID: Int) extends Event with CborSerializable
 
   val ViewActorServiceKey: ServiceKey[ViewActor.Event] = ServiceKey[ViewActor.Event]("ViewService")
   var zoneList: List[Zone] = List()
@@ -68,8 +70,23 @@ object ViewActor:
           fireStations foreach { _ ! FireStationActor.ManageAlarm() }
           updateZone(zoneID, ZoneState.Managing)
           running(ctx, fireStations, rainGauges, views)
+        case AddRainGauge() =>
+          ctx.log.info(" ==== Add rain gauge ==== ")
+          running(ctx, fireStations, rainGauges, views)
+        case FireStationBusy(zoneID) => 
+          ctx.log.info(s"Fire station $zoneID is Busy")
+          updateFireStation(zoneID, FireStationState.Busy)
+          running(ctx, fireStations, rainGauges, views)
+        case FireStationFree(zoneID) =>
+          ctx.log.info(s"Fire station $zoneID is free")
+          updateFireStation(zoneID, FireStationState.Free)
+          running(ctx, fireStations, rainGauges, views)
     }
 
   private def updateZone(zoneID: Int, newState: ZoneState): Unit =
     zoneList.filter(z => z.id.equals(zoneID)).foreach(u => u.changeState(newState))
+    viewList.foreach(v => v.updateGui(zoneList))
+
+  private def updateFireStation(zoneID: Int, newState: FireStationState): Unit =
+    zoneList.filter(z => z.id.equals(zoneID)).foreach(u => u.fireStation.changeState(newState))
     viewList.foreach(v => v.updateGui(zoneList))

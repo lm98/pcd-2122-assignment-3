@@ -67,6 +67,7 @@ object FireStationActor:
     Behaviors receiveMessage { msg => msg match
       case ManageAlarm() =>
         ctx.log.info("Going to manage the alarm")
+        viewActors foreach { _ ! ViewActor.FireStationBusy(zone)}
         busy(ctx, rainGauges, viewActors, zone)
       case _ => Behaviors.same
     }
@@ -79,6 +80,7 @@ object FireStationActor:
       case Tick() =>
         ctx.log.info("Alarm managed")
         viewActors foreach { _ ! ViewActor.AlarmOff(zone) }
+        viewActors foreach { _ ! ViewActor.FireStationFree(zone) }
         running(ctx, rainGauges, viewActors, 0, zone)
       case _ =>
         ctx.log.warn("FireStation is currently busy")
