@@ -49,13 +49,13 @@ object ViewActor:
     Behaviors receiveMessage { msg =>
       msg match
         case ViewUpdated(newView) =>
-          ctx.log.info(s"Views have been updated")
+          ctx.log.info(s"Views have been updated to ${newView.size}")
           running(ctx, fireStations, rainGauges, newView.toIndexedSeq)
         case RainGaugesUpdated(rainGauge) =>
-          ctx.log.info(s"Rain gauges have been updated")
+          ctx.log.info(s"Rain gauges have been updated to ${rainGauge.size}")
           running(ctx, fireStations, rainGauge.toIndexedSeq, views)
         case FireStationsUpdated(newStations) =>
-          ctx.log.info(s"Fire stations have been updated")
+          ctx.log.info(s"Fire stations have been updated to ${newStations.size}")
           running(ctx, newStations.toIndexedSeq, rainGauges, views)
         case AlarmOn(zoneID) =>
           ctx.log.info(s"Zone $zoneID has alarm on")

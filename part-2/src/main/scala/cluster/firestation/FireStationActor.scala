@@ -50,9 +50,9 @@ object FireStationActor:
           Behaviors.same
       case NotifyAlarmOn() =>
         val notifications = alarmNotifications + 1
-        ctx.log.info(s"Received $notifications notifications")
+        ctx.log.info(s"Firestation #$zone Received $notifications notifications")
         if notifications >= rainGauges.size then
-          ctx.log.info("FireStation Warned")
+          ctx.log.info(s"Firestation #$zone Warned")
           viewActors foreach { _ ! ViewActor.AlarmOn(zone) }
           warned(ctx, rainGauges, viewActors, zone)
         else
@@ -66,7 +66,7 @@ object FireStationActor:
                       zone: Int): Behavior[FireStationActor.Event] =
     Behaviors receiveMessage { msg => msg match
       case ManageAlarm() =>
-        ctx.log.info("Going to manage the alarm")
+        ctx.log.info(s"Firestation #$zone Going to manage the alarm")
         viewActors foreach { _ ! ViewActor.FireStationBusy(zone)}
         busy(ctx, rainGauges, viewActors, zone)
       case _ => Behaviors.same
@@ -78,11 +78,11 @@ object FireStationActor:
                    zone: Int): Behavior[FireStationActor.Event] =
     Behaviors receiveMessage { msg => msg match
       case Tick() =>
-        ctx.log.info("Alarm managed")
+        ctx.log.info(s"Firestation #$zone Alarm managed")
         viewActors foreach { _ ! ViewActor.AlarmOff(zone) }
         viewActors foreach { _ ! ViewActor.FireStationFree(zone) }
         running(ctx, rainGauges, viewActors, 0, zone)
       case _ =>
-        ctx.log.warn("FireStation is currently busy")
+        ctx.log.warn(s"Firestation #$zone is currently busy")
         Behaviors.same
     }

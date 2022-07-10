@@ -14,13 +14,23 @@ import scala.util.Random
 object App:
   val defPaddingValue: Int = 10
   var zones: List[Zone] = List.empty
+
   object RootBehavior:
     def apply(): Behavior[Nothing] = Behaviors.setup[Nothing] { ctx =>
       val cluster = Cluster(ctx.system)
       zones = initZones()
+      val rainGaugesNumber = ctx.system.settings.config.getInt("rain-analysis.rainGaugesPerNode")
+      val zoneNumber = ctx.system.settings.config.getInt("rain-analysis.nodesNumber")
+      var gaugeIDs = ctx.system.settings.config.getInt("rain-analysis.rainGaugesNumber")
       cluster.selfMember.roles.head match
-        case "rainGauge" => ctx.spawn(RainGaugeActor(), "RainGauge"+Random.nextInt(10))
-        case "fireStation" => ctx.spawn(FireStationActor(), "FireStation")
+        case "rainGauge" =>
+          (1 until zoneNumber + 1) foreach { x =>
+            (0 until rainGaugesNumber) foreach { y =>
+              ctx.spawn(RainGaugeActor(x), s"RainGauge$gaugeIDs")
+              gaugeIDs = gaugeIDs - 1
+            }
+          }
+        case "fireStation" => (1 until zoneNumber + 1) foreach { x => ctx.spawn(FireStationActor(x), s"FireStation$x")}
         case "viewActor" => ctx.spawn(ViewActor(zones), "ViewActor")
       Behaviors.empty
     }
@@ -31,7 +41,6 @@ object App:
            akka.cluster.roles = [$role]
            """)
       .withFallback(ConfigFactory.load("rain-analysis"))
-
     ActorSystem[Nothing](RootBehavior(), "ClusterSystem", config)
 
   def initZones(): List[Zone] =
@@ -44,7 +53,7 @@ object App:
       c <- 0 until cols
     yield
       id = id + 1
-      val bounds = RectangleBounds(Point2D(c * Costants.defalutWidth , r * Costants.defaultHeight)) //Point2D(rand.between(c * Costants.defaultHeight, r * Costants.defalutWidth), rand.between((c + 1) * Costants.defaultHeight - 1, (r + 1) * Costants.defalutWidth - 1))
+      val bounds = RectangleBounds(Point2D(c * Costants.defalutWidth , r * Costants.defaultHeight))
       rainGauges = initRainGauges(id, bounds)
       Zone(id, ZoneState.Ok, FireStation(id, FireStationState.Free, Point2D().createRandom(bounds.topLeft.x + defPaddingValue, bounds.bottomRight.x - defPaddingValue, bounds.topLeft.y + defPaddingValue, bounds.bottomRight.y - defPaddingValue)), bounds, rainGauges)
     zones.toList
@@ -54,14 +63,13 @@ object App:
       RainGauge(zoneID, Point2D().createRandom(bounds.topLeft.x + defPaddingValue, bounds.bottomRight.x - defPaddingValue, bounds.topLeft.y + defPaddingValue, bounds.bottomRight.y - defPaddingValue))
     gauges.toList
 
-
   def main(args: Array[String]): Unit =
     if args.isEmpty then
-      startup("rainGauge", 25251)
-      startup("rainGauge", 3000)
-      startup("rainGauge", 3001)
+      startup("viewActor", 25251)
+      startup("rainGauge", 4000)
       startup("fireStation", 25252)
-      startup("viewActor", 3003)
+      //      startup("rainGauge", 25251)
+      //      startup("rainGauge", 3001)
     else
       require(args.length == 2, "Usage: role port")
       startup(args(0), args(1).toInt)
