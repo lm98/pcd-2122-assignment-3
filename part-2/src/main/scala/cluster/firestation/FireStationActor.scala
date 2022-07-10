@@ -6,6 +6,7 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import cluster.CborSerializable
 import cluster.raingauge.RainGaugeActor
+import model.FireStation
 
 import concurrent.duration.*
 
@@ -18,7 +19,7 @@ object FireStationActor:
   case class ManageAlarm(zoneID: Int) extends Event with CborSerializable
   val FireStationServiceKey: ServiceKey[FireStationActor.Event] = ServiceKey[FireStationActor.Event]("FireStation")
 
-  def apply(zone: Int = 1): Behavior[FireStationActor.Event] =
+  def apply(fireStation: FireStation): Behavior[FireStationActor.Event] =
     Behaviors withTimers { timers =>
       Behaviors setup { ctx =>
         val subscriptionAdapter = ctx.messageAdapter[Receptionist.Listing] {
@@ -30,7 +31,7 @@ object FireStationActor:
 
         timers.startTimerWithFixedDelay(Tick(), Tick(), 10.seconds)
 
-        running(ctx, Set.empty, IndexedSeq.empty, 0, zone)
+        running(ctx, Set.empty, IndexedSeq.empty, 0, fireStation)
       }
     }
 
@@ -38,39 +39,40 @@ object FireStationActor:
                       rainGauges: Set[ActorRef[RainGaugeActor.Event]],
                       viewActors: IndexedSeq[ActorRef[ViewActor.Event]],
                       alarmNotifications: Int,
-                      zone: Int): Behavior[FireStationActor.Event] =
+                      fireStation: FireStation): Behavior[FireStationActor.Event] =
     Behaviors receiveMessage { msg => msg match
       case ViewActorsUpdated(newSet) =>
+        // newSet foreach { _ ! ViewActor.AddFireStation() }
         ctx.log.info(s"Views have been updated to ${newSet.size}")
-        running(ctx, rainGauges, newSet.toIndexedSeq, alarmNotifications, zone)
+        running(ctx, rainGauges, newSet.toIndexedSeq, alarmNotifications, fireStation)
       case ZoneRequestRainGaugeToFireStation(originZone, rainGauge) =>
-        if originZone == zone then
+        if originZone == fireStation.zoneID then
           rainGauge ! RainGaugeActor.ZoneRequestFireStationToRainGauge(ctx.self)
-          running(ctx, rainGauges + rainGauge, viewActors, alarmNotifications, zone)
+          running(ctx, rainGauges + rainGauge, viewActors, alarmNotifications, fireStation)
         else
           Behaviors.same
       case NotifyAlarmOn() =>
         val notifications = alarmNotifications + 1
-        ctx.log.info(s"Firestation #$zone Received $notifications notifications")
+        ctx.log.info(s"Firestation #${fireStation.zoneID} Received $notifications notifications")
         if notifications >= rainGauges.size then
-          ctx.log.info(s"Firestation #$zone Warned")
-          viewActors foreach { _ ! ViewActor.AlarmOn(zone) }
-          warned(ctx, rainGauges, viewActors, zone)
+          ctx.log.info(s"Firestation #${fireStation.zoneID} Warned")
+          viewActors foreach { _ ! ViewActor.AlarmOn(fireStation.zoneID) }
+          warned(ctx, rainGauges, viewActors, fireStation)
         else
-          running(ctx, rainGauges, viewActors, notifications, zone)
+          running(ctx, rainGauges, viewActors, notifications, fireStation)
       case _ => Behaviors.same
     }
 
   private def warned(ctx: ActorContext[Event],
                       rainGauges: Set[ActorRef[RainGaugeActor.Event]],
                       viewActors: IndexedSeq[ActorRef[ViewActor.Event]],
-                      zone: Int): Behavior[FireStationActor.Event] =
+                     fireStation: FireStation): Behavior[FireStationActor.Event] =
     Behaviors receiveMessage { msg => msg match
       case ManageAlarm(zoneID) =>
-        if(zoneID == zone)
-          ctx.log.info(s"Firestation #$zone Going to manage the alarm")
-          viewActors foreach { _ ! ViewActor.FireStationBusy(zone)}
-          busy(ctx, rainGauges, viewActors, zone)
+        if(zoneID == fireStation.zoneID)
+          ctx.log.info(s"Firestation #${fireStation.zoneID} Going to manage the alarm")
+          viewActors foreach { _ ! ViewActor.FireStationBusy(fireStation.zoneID)}
+          busy(ctx, rainGauges, viewActors, fireStation)
         else
           Behaviors.same
       case _ => Behaviors.same
@@ -79,14 +81,16 @@ object FireStationActor:
   private def busy(ctx: ActorContext[Event],
                    rainGauges: Set[ActorRef[RainGaugeActor.Event]],
                    viewActors: IndexedSeq[ActorRef[ViewActor.Event]],
-                   zone: Int): Behavior[FireStationActor.Event] =
+                   fireStation: FireStation): Behavior[FireStationActor.Event] =
     Behaviors receiveMessage { msg => msg match
       case Tick() =>
-        ctx.log.info(s"Firestation #$zone Alarm managed")
-        viewActors foreach { _ ! ViewActor.AlarmOff(zone) }
-        viewActors foreach { _ ! ViewActor.FireStationFree(zone) }
-        running(ctx, rainGauges, viewActors, 0, zone)
+        ctx.log.info(s"Firestation #${fireStation.zoneID} Alarm managed")
+        viewActors foreach { vA =>
+          vA ! ViewActor.AlarmOff(fireStation.zoneID)
+          vA ! ViewActor.FireStationFree(fireStation.zoneID)
+        }
+        running(ctx, rainGauges, viewActors, 0, fireStation)
       case _ =>
-        ctx.log.warn(s"Firestation #$zone is currently busy")
+        ctx.log.warn(s"Firestation #${fireStation.zoneID} is currently busy")
         Behaviors.same
     }

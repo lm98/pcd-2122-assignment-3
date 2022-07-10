@@ -37,7 +37,7 @@ object RainGaugeActor:
   val ListenerServiceKey: ServiceKey[RainGaugeActor.Event] = ServiceKey[RainGaugeActor.Event]("RainGauge")
   val ALARM_THRESHOLD = 0.60
 
-  def apply(zone: Int = 1): Behavior[Event] =
+  def apply(rainGauge: RainGauge): Behavior[Event] =
     Behaviors setup { ctx =>
       Behaviors withTimers { timers =>
         val subscriptionAdapter = ctx.messageAdapter[Receptionist.Listing] {
@@ -53,43 +53,39 @@ object RainGaugeActor:
 
         timers.startTimerWithFixedDelay(Tick(), Tick(), 2.seconds)
 
-        running(ctx, Set.empty, Set.empty, Set.empty, 0.0, List.empty, zone)
+        running(ctx, Set.empty, Set.empty, 0.0, List.empty, rainGauge)
       }
     }
 
   private def running(ctx: ActorContext[Event],
                       rainGauges: Set[ActorRef[RainGaugeActor.Event]],
                       fireStations: Set[ActorRef[FireStationActor.Event]],
-                      views: Set[ActorRef[ViewActor.Event]],
                       lastValue: Double,
                       tmpValues: List[ResponseState],
-                      zone: Int = 0): Behavior[RainGaugeActor.Event] =
+                      rainGauge: RainGauge): Behavior[RainGaugeActor.Event] =
 
     def checkAlarmCondition(values: List[ResponseState]): Boolean =
       values.count { case Ok(true) => true ; case _ => false } >= (rainGauges.size/2 + 1)
 
     Behaviors receiveMessage  { msg => msg match
       case ViewUpdated(newSet) =>
-//        views foreach { _ => ???} //TODO when spawns a new view must pass each other the list of the zones
+//        newSet foreach { _ => ???} //TODO send raingauge
         ctx.log.info(s"Views have been updated to ${newSet.size}")
-        running(ctx, rainGauges, fireStations, newSet, lastValue, tmpValues, zone)
+        running(ctx, rainGauges, fireStations, lastValue, tmpValues, rainGauge)
       case RainGaugesUpdated(gauges) =>
         // Ask every other rain gauge if we are in the same zone
-        gauges foreach { _ ! ZoneRequestRainGaugeToAnother(zone, ctx.self) }
+        gauges foreach { _ ! ZoneRequestRainGaugeToAnother(rainGauge.zoneID, ctx.self) }
         Behaviors.same
-      case SendNewRainGauge(newSet) =>
-        views foreach { _ => ViewActor.RainGaugesUpdated(newSet)}
-        running(ctx, newSet, fireStations, views, lastValue, tmpValues, zone)
       case ZoneRequestRainGaugeToAnother(originZone, newRainGauge) =>
-        if originZone == zone then
-          running(ctx, rainGauges + newRainGauge, fireStations, views, lastValue, tmpValues, zone)
+        if originZone == rainGauge.zoneID then
+          running(ctx, rainGauges + newRainGauge, fireStations, lastValue, tmpValues, rainGauge)
         else
-          running(ctx, rainGauges, fireStations, views, lastValue, tmpValues, zone)
+          running(ctx, rainGauges, fireStations, lastValue, tmpValues, rainGauge)
       case FireStationsUpdated(stations) =>
-        stations foreach { _ ! FireStationActor.ZoneRequestRainGaugeToFireStation(zone, ctx.self) }
+        stations foreach { _ ! FireStationActor.ZoneRequestRainGaugeToFireStation(rainGauge.zoneID, ctx.self) }
         Behaviors.same
       case ZoneRequestFireStationToRainGauge(fireStation) =>
-        running(ctx, rainGauges, fireStations + fireStation, views, lastValue, tmpValues, zone)
+        running(ctx, rainGauges, fireStations + fireStation, lastValue, tmpValues, rainGauge)
       case Tick() =>
         //Check other rain gauges values
         given Timeout = 2.seconds
@@ -100,14 +96,14 @@ object RainGaugeActor:
         //Update the value
         val value = ThreadLocalRandom.current().nextDouble()
         ctx.log.info(s"${ctx.self.path.name}: Produced $value")
-        running(ctx, rainGauges, fireStations, views, value, List.empty, zone)
+        running(ctx, rainGauges, fireStations, value, List.empty, rainGauge)
       case Request(replyTo) => replyTo ! Response(lastValue) ; Behaviors.same
       case ReceiveState(state) =>
         val newValues = tmpValues :+ state
         if (checkAlarmCondition(newValues))
           fireStations foreach { _ ! NotifyAlarmOn() }
-          running(ctx, rainGauges, fireStations, views, lastValue, List.empty, zone)
+          running(ctx, rainGauges, fireStations, lastValue, List.empty, rainGauge)
         else
-          running(ctx, rainGauges, fireStations, views, lastValue, newValues, zone)
+          running(ctx, rainGauges, fireStations, lastValue, newValues, rainGauge)
       case _ => Behaviors.same
     }
