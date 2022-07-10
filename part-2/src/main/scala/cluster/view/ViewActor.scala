@@ -67,7 +67,7 @@ object ViewActor:
           running(ctx, fireStations, rainGauges, views)
         case ManageAlarm(zoneID) =>
           ctx.log.info(s"Zone $zoneID is managing alarm")
-          fireStations foreach { _ ! FireStationActor.ManageAlarm() }
+          fireStations foreach { _ ! FireStationActor.ManageAlarm(zoneID) }
           updateZone(zoneID, ZoneState.Managing)
           running(ctx, fireStations, rainGauges, views)
         case AddRainGauge() =>

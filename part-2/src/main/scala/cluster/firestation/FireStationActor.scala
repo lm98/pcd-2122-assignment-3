@@ -15,7 +15,7 @@ object FireStationActor:
   private case class Tick() extends Event
   case class ZoneRequestRainGaugeToFireStation(zone: Int, replyTo: ActorRef[RainGaugeActor.Event]) extends Event with CborSerializable
   case class NotifyAlarmOn() extends Event with CborSerializable
-  case class ManageAlarm() extends Event with CborSerializable
+  case class ManageAlarm(zoneID: Int) extends Event with CborSerializable
   val FireStationServiceKey: ServiceKey[FireStationActor.Event] = ServiceKey[FireStationActor.Event]("FireStation")
 
   def apply(zone: Int = 1): Behavior[FireStationActor.Event] =
@@ -65,10 +65,13 @@ object FireStationActor:
                       viewActors: IndexedSeq[ActorRef[ViewActor.Event]],
                       zone: Int): Behavior[FireStationActor.Event] =
     Behaviors receiveMessage { msg => msg match
-      case ManageAlarm() =>
-        ctx.log.info(s"Firestation #$zone Going to manage the alarm")
-        viewActors foreach { _ ! ViewActor.FireStationBusy(zone)}
-        busy(ctx, rainGauges, viewActors, zone)
+      case ManageAlarm(zoneID) =>
+        if(zoneID == zone)
+          ctx.log.info(s"Firestation #$zone Going to manage the alarm")
+          viewActors foreach { _ ! ViewActor.FireStationBusy(zone)}
+          busy(ctx, rainGauges, viewActors, zone)
+        else
+          Behaviors.same
       case _ => Behaviors.same
     }
     
