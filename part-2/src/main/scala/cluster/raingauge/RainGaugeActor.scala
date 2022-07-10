@@ -69,9 +69,10 @@ object RainGaugeActor:
       values.count { case Ok(true) => true ; case _ => false } >= (rainGauges.size/2 + 1)
 
     Behaviors receiveMessage  { msg => msg match
-      case ViewUpdated(views) => 
-        views foreach { _ => ???}
-        Behaviors.same
+      case ViewUpdated(newSet) =>
+//        views foreach { _ => ???} //TODO when spawns a new view must pass each other the list of the zones
+        ctx.log.info(s"Views have been updated to ${newSet.size}")
+        running(ctx, rainGauges, fireStations, newSet, lastValue, tmpValues, zone)
       case RainGaugesUpdated(gauges) =>
         // Ask every other rain gauge if we are in the same zone
         gauges foreach { _ ! ZoneRequestRainGaugeToAnother(zone, ctx.self) }

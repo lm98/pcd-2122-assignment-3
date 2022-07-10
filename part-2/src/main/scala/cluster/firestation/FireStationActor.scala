@@ -41,6 +41,7 @@ object FireStationActor:
                       zone: Int): Behavior[FireStationActor.Event] =
     Behaviors receiveMessage { msg => msg match
       case ViewActorsUpdated(newSet) =>
+        ctx.log.info(s"Views have been updated to ${newSet.size}")
         running(ctx, rainGauges, newSet.toIndexedSeq, alarmNotifications, zone)
       case ZoneRequestRainGaugeToFireStation(originZone, rainGauge) =>
         if originZone == zone then

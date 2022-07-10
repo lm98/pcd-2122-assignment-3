@@ -66,6 +66,7 @@ object App:
   def main(args: Array[String]): Unit =
     if args.isEmpty then
       startup("viewActor", 25251)
+      startup("viewActor", 25253)
       startup("rainGauge", 4000)
       startup("fireStation", 25252)
       //      startup("rainGauge", 25251)
