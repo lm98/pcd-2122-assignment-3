@@ -34,22 +34,23 @@ object RainGaugeActor:
   private case class SendNewRainGauge(newSet: Set[ActorRef[Event]]) extends Event with CborSerializable
   private case class ViewUpdated(value: Set[ActorRef[ViewActor.Event]]) extends Event with CborSerializable
 
-  val ListenerServiceKey: ServiceKey[RainGaugeActor.Event] = ServiceKey[RainGaugeActor.Event]("RainGauge")
+  val RainGaugeServiceKey: ServiceKey[RainGaugeActor.Event] = ServiceKey[RainGaugeActor.Event]("RainGauge")
   val ALARM_THRESHOLD = 0.60
 
   def apply(rainGauge: RainGauge): Behavior[Event] =
     Behaviors setup { ctx =>
       Behaviors withTimers { timers =>
         val subscriptionAdapter = ctx.messageAdapter[Receptionist.Listing] {
-          case RainGaugeActor.ListenerServiceKey.Listing(newGauges) =>
+          case RainGaugeActor.RainGaugeServiceKey.Listing(newGauges) =>
             RainGaugesUpdated(newGauges)
           case FireStationActor.FireStationServiceKey.Listing(newFireStations) =>
             FireStationsUpdated(newFireStations)
           case ViewActor.ViewActorServiceKey.Listing(newView) => ViewUpdated(newView)
         }
-        ctx.system.receptionist ! Receptionist.Subscribe(ListenerServiceKey, subscriptionAdapter)
+        ctx.system.receptionist ! Receptionist.Subscribe(RainGaugeServiceKey, subscriptionAdapter)
         ctx.system.receptionist ! Receptionist.Subscribe(FireStationServiceKey, subscriptionAdapter)
-        ctx.system.receptionist ! Receptionist.Register(ListenerServiceKey, ctx.self)
+        
+        ctx.system.receptionist ! Receptionist.Register(RainGaugeServiceKey, ctx.self)
 
         timers.startTimerWithFixedDelay(Tick(), Tick(), 2.seconds)
 
