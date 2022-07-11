@@ -31,7 +31,6 @@ object RainGaugeActor:
   private case class Request(replyTo: ActorRef[Response]) extends Event with CborSerializable
   private case class Response(value: Double) extends Event with CborSerializable
   private case class ReceiveState(state: ResponseState) extends Event with CborSerializable
-  private case class SendNewRainGauge(newSet: Set[ActorRef[Event]]) extends Event with CborSerializable
   private case class ViewUpdated(value: Set[ActorRef[ViewActor.Event]]) extends Event with CborSerializable
 
   val RainGaugeServiceKey: ServiceKey[RainGaugeActor.Event] = ServiceKey[RainGaugeActor.Event]("RainGauge")
