@@ -15,10 +15,7 @@ import scala.swing.*
 import scala.swing.Action.NoAction.enabled
 import scala.swing.BorderPanel.Position.*
 
-trait ViewFunctions:
-  def updateGui(zs: List[Zone]): Unit
-
-class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width: Int = 820, height: Int = 520) extends Frame with ViewFunctions:
+class AppView(var zones: List[Zone], var fireStations: List[FireStation], var rainGauges: List[RainGauge], viewActor: ActorRef[ViewActor.Event], width: Int = 820, height: Int = 520) extends Frame:
   val cityPanel: CityPanel = new CityPanel
   val buttonsPanel: ManagePanel = new ManagePanel
   size = Dimension(width + 100, height + 100)
@@ -33,7 +30,22 @@ class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width
     override def windowClosing(ev: WindowEvent): Unit = System.exit(-1)
     override def windowClosed(ev: WindowEvent): Unit = System.exit(-1)
   })
-  override def updateGui(zs: List[Zone]): Unit =
+  def updateStations(fs: FireStation): Unit =
+    SwingUtilities.invokeLater( () =>
+      fireStations = fireStations :+ fs
+      buttonsPanel.display()
+      repaint()
+    )
+  def updateFireStationsState(fs: FireStation): Unit = 
+    fireStations = fireStations.filterNot( f => f.pos.equals(fs.pos))
+    updateStations(fs)
+  def updateRainGauges(rainGauge: RainGauge): Unit =
+    SwingUtilities.invokeLater( () =>
+      rainGauges = rainGauges :+ rainGauge
+      buttonsPanel.display()
+      repaint()
+    )
+  def updateGui(zs: List[Zone]): Unit =
     SwingUtilities.invokeLater(() =>
       zones = zs
       buttonsPanel.display()
@@ -57,11 +69,13 @@ class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width
         g2 setColor java.awt.Color.BLACK
         g2 drawRect(zone.bounds.topLeft.x, zone.bounds.topLeft.y, zone.bounds.width, zone.bounds.height)
         g2 drawString(s"ZONE ${zone.id} - ${zone.state.toString}", zone.bounds.topLeft.x + 5, zone.bounds.topLeft.y + 15)
-        zone.rainGauges.foreach(r => {
-          g2.fillOval(r.pos.x, r.pos.y, 10, 10)
-          g2.setColor(java.awt.Color.BLACK)
-        })
-        g2 fillRect(zone.fireStation.pos.x, zone.fireStation.pos.y, 10, 10)
+      })
+      rainGauges.foreach(r => {
+        g2.fillOval(r.pos.x, r.pos.y, 10, 10)
+        g2.setColor(java.awt.Color.BLACK)
+      })
+      fireStations.foreach( f => {
+        g2 fillRect(f.pos.x, f.pos.y, 10, 10)
         g2 setColor java.awt.Color.BLUE
       })
 
@@ -70,8 +84,10 @@ class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width
     var textAreas: Map[Int, TextField] = Map()
     preferredSize = Dimension(600,400)
     zones.foreach(zone => {
+      val rainGaugesNumber: Int = rainGauges.count( _.zoneID == zone.id)
+      val fireStationsStates = fireStations.filter( f => f.zoneID.equals(zone.id)).map(f => f.state)
       textAreas = textAreas.+((zone.id, new TextField(){
-        text = s"Zone ${zone.id}\tRain gauges = ${zone.rainGauges.size}\tStatus: ${zone.state.toString}\tFire Station: ${zone.fireStation.state.toString}"
+        text = s"Zone ${zone.id}\tRain gauges = $rainGaugesNumber\tStatus: ${zone.state.toString}\tFire Station: $fireStationsStates"
         editable = false
         preferredSize = Dimension(50,50)
       }))
@@ -88,7 +104,9 @@ class AppView(var zones: List[Zone], viewActor: ActorRef[ViewActor.Event], width
 
     def display(): Unit =
       zones.foreach(zone =>
-        textAreas(zone.id).text = s"Zone ${zone.id}\tRain gauges = ${zone.rainGauges.size}\tStatus: ${zone.state.toString}\tFire Station: ${zone.fireStation.state.toString}"
+        val fireStationsStates = fireStations.filter( f => f.zoneID.equals(zone.id)).map(f => f.state)
+        val rainGaugesNumber: Int = rainGauges.count( _.zoneID == zone.id)
+        textAreas(zone.id).text = s"Zone ${zone.id}\tRain gauges = $rainGaugesNumber\tStatus: ${zone.state.toString}\tFire Station: $fireStationsStates"
         zone.state match
           case ZoneState.Ok =>
             buttons(zone.id).enabled = false;

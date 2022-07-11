@@ -24,18 +24,16 @@ object App:
       var gaugeIDs = ctx.system.settings.config.getInt("rain-analysis.rainGaugesNumber")
       cluster.selfMember.roles.head match
         case "rainGauge" =>
-          (1 until zoneNumber + 1) foreach { x =>
-            val zoneBounds = zoneList(x).bounds
+          zoneList foreach { z =>
             (0 until rainGaugesNumber) foreach { _ =>
-              val newGauge = RainGauge(x, Point2D().createRandom(zoneBounds.topLeft.x + defPaddingValue, zoneBounds.bottomRight.x - defPaddingValue, zoneBounds.topLeft.y + defPaddingValue, zoneBounds.bottomRight.y - defPaddingValue))
+              val newGauge = RainGauge(z.id, Point2D().createRandom(z.bounds.topLeft.x + defPaddingValue, z.bounds.bottomRight.x - defPaddingValue, z.bounds.topLeft.y + defPaddingValue, z.bounds.bottomRight.y - defPaddingValue))
               ctx.spawn(RainGaugeActor(newGauge), s"RainGauge$gaugeIDs")
               gaugeIDs = gaugeIDs - 1
             }
           }
-        case "fireStation" => (1 until zoneNumber + 1) foreach { x =>
-          val zoneBounds = zoneList(x).bounds
-          val newStation = FireStation(x, FireStationState.Free, Point2D().createRandom(zoneBounds.topLeft.x + defPaddingValue, zoneBounds.bottomRight.x - defPaddingValue, zoneBounds.topLeft.y + defPaddingValue, zoneBounds.bottomRight.y - defPaddingValue))
-          ctx.spawn(FireStationActor(newStation), s"FireStation$x")
+        case "fireStation" => zoneList foreach { z =>
+          val newStation = FireStation(z.id, FireStationState.Free, Point2D().createRandom(z.bounds.topLeft.x + defPaddingValue, z.bounds.bottomRight.x - defPaddingValue, z.bounds.topLeft.y + defPaddingValue, z.bounds.bottomRight.y - defPaddingValue))
+          ctx.spawn(FireStationActor(newStation), s"FireStation${z.id}")
         }
         case "viewActor" => ctx.spawn(ViewActor(zoneList), "ViewActor")
       Behaviors.empty
@@ -59,7 +57,7 @@ object App:
     yield
       id = id + 1
       val bounds = RectangleBounds(Point2D(c * Costants.defalutWidth , r * Costants.defaultHeight))
-      Zone(id, ZoneState.Ok, bounds) 
+      Zone(id, ZoneState.Ok, bounds)
     zones.toList
 
   /*def initRainGauges(zoneID: Int, bounds: RectangleBounds): List[RainGauge] =
@@ -71,11 +69,11 @@ object App:
     val zoneList = initZones()
     if args.isEmpty then
       startup("viewActor", 25251, zoneList)
-      startup("viewActor", 25253, zoneList)
+//      startup("viewActor", 25253, zoneList)
       startup("rainGauge", 4000, zoneList)
       startup("fireStation", 25252, zoneList)
       //      startup("rainGauge", 25251)
       //      startup("rainGauge", 3001)
     else
       require(args.length == 2, "Usage: role port")
-      startup(args(0), args(1).toInt)
+      startup(args(0), args(1).toInt, zoneList)

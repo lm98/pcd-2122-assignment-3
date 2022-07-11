@@ -18,10 +18,8 @@ enum FireStationState:
 
 case class RainGauge(zoneID: Int, pos: Point2D)
 
-case class Zone(id: Int, var state: ZoneState, bounds: RectangleBounds, var rainGauges: List[RainGauge] = List()):
-  var fireStation: Option[FireStation] = None
+case class Zone(id: Int, var state: ZoneState, bounds: RectangleBounds):
   def changeState(newState: ZoneState): Unit = state = newState
-  def addRainGauge(rainGauge: RainGauge): Unit = rainGauges = rainGauges :+ rainGauge
 
 case class RectangleBounds(topLeft: Point2D, height: Int = Costants.defaultHeight, width: Int = Costants.defalutWidth):
   def apply(topLeft: Point2D, height: Int, width: Int): RectangleBounds = RectangleBounds(topLeft, height, width)

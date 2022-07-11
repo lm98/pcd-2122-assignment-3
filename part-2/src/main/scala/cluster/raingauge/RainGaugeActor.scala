@@ -48,7 +48,7 @@ object RainGaugeActor:
         }
         ctx.system.receptionist ! Receptionist.Subscribe(RainGaugeServiceKey, subscriptionAdapter)
         ctx.system.receptionist ! Receptionist.Subscribe(FireStationServiceKey, subscriptionAdapter)
-        
+        ctx.system.receptionist ! Receptionist.Subscribe(ViewActor.ViewActorServiceKey, subscriptionAdapter)
         ctx.system.receptionist ! Receptionist.Register(RainGaugeServiceKey, ctx.self)
 
         timers.startTimerWithFixedDelay(Tick(), Tick(), 2.seconds)
@@ -69,7 +69,7 @@ object RainGaugeActor:
 
     Behaviors receiveMessage  { msg => msg match
       case ViewUpdated(newSet) =>
-//        newSet foreach { _ => ???} //TODO send raingauge
+        newSet foreach { _ ! ViewActor.AddRainGauge(rainGauge)}
         ctx.log.info(s"Views have been updated to ${newSet.size}")
         running(ctx, rainGauges, fireStations, lastValue, tmpValues, rainGauge)
       case RainGaugesUpdated(gauges) =>

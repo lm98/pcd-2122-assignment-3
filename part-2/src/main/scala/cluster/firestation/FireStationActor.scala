@@ -6,7 +6,7 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import cluster.CborSerializable
 import cluster.raingauge.RainGaugeActor
-import model.FireStation
+import model.{FireStation, FireStationState}
 
 import concurrent.duration.*
 
@@ -42,7 +42,7 @@ object FireStationActor:
                       fireStation: FireStation): Behavior[FireStationActor.Event] =
     Behaviors receiveMessage { msg => msg match
       case ViewActorsUpdated(newSet) =>
-        newSet foreach { _ ! ViewActor.AddFireStation(fireStation) }
+        newSet.foreach( s => s ! ViewActor.UpdateStation(fireStation))
         ctx.log.info(s"Views have been updated to ${newSet.size}")
         running(ctx, rainGauges, newSet.toIndexedSeq, alarmNotifications, fireStation)
       case ZoneRequestRainGaugeToFireStation(originZone, rainGauge) =>
@@ -68,10 +68,15 @@ object FireStationActor:
                       viewActors: IndexedSeq[ActorRef[ViewActor.Event]],
                      fireStation: FireStation): Behavior[FireStationActor.Event] =
     Behaviors receiveMessage { msg => msg match
+      case ViewActorsUpdated(newSet) =>
+        newSet foreach { _ ! ViewActor.AddFireStation(fireStation) }
+        ctx.log.info(s"Views have been updated to ${newSet.size}")
+        warned(ctx, rainGauges, newSet.toIndexedSeq, fireStation)
       case ManageAlarm(zoneID) =>
         if(zoneID == fireStation.zoneID)
           ctx.log.info(s"Firestation #${fireStation.zoneID} Going to manage the alarm")
-          viewActors foreach { _ ! ViewActor.FireStationBusy(fireStation.zoneID)}
+          fireStation.changeState(FireStationState.Busy)
+          viewActors foreach { _ ! ViewActor.UpdateStation(fireStation)}
           busy(ctx, rainGauges, viewActors, fireStation)
         else
           Behaviors.same
@@ -83,11 +88,16 @@ object FireStationActor:
                    viewActors: IndexedSeq[ActorRef[ViewActor.Event]],
                    fireStation: FireStation): Behavior[FireStationActor.Event] =
     Behaviors receiveMessage { msg => msg match
+      case ViewActorsUpdated(newSet) =>
+        newSet foreach { _ ! ViewActor.AddFireStation(fireStation) }
+        ctx.log.info(s"Views have been updated to ${newSet.size}")
+        busy(ctx, rainGauges, newSet.toIndexedSeq, fireStation)
       case Tick() =>
         ctx.log.info(s"Firestation #${fireStation.zoneID} Alarm managed")
+        fireStation.changeState(FireStationState.Free)
         viewActors foreach { vA =>
           vA ! ViewActor.AlarmOff(fireStation.zoneID)
-          vA ! ViewActor.FireStationFree(fireStation.zoneID)
+          vA ! ViewActor.UpdateStation(fireStation)
         }
         running(ctx, rainGauges, viewActors, 0, fireStation)
       case _ =>
