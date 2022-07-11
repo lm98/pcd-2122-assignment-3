@@ -20,10 +20,10 @@ object ViewActor:
   case class AlarmOn(zoneID: Int) extends Event with CborSerializable
   case class AlarmOff(zoneID: Int) extends Event with CborSerializable
   case class ManageAlarm(zoneID: Int) extends Event with CborSerializable
-  case class AddRainGauge(/*rainGauge: RainGauge*/) extends Event with CborSerializable
+  case class AddRainGauge(rainGauge: RainGauge) extends Event with CborSerializable
   case class RainGaugesUpdated(newSet: Set[ActorRef[RainGaugeActor.Event]]) extends Event with CborSerializable
   private case class ViewUpdated(newSet: Set[ActorRef[Event]]) extends Event with CborSerializable
-  case class AddFireStation() extends Event with CborSerializable
+  case class AddFireStation(fireStation: FireStation) extends Event with CborSerializable
   case class FireStationBusy(zoneID: Int) extends Event with CborSerializable
   case class FireStationFree(zoneID: Int) extends Event with CborSerializable
 
@@ -70,8 +70,13 @@ object ViewActor:
           fireStations foreach { _ ! FireStationActor.ManageAlarm(zoneID) }
           updateZone(zoneID, ZoneState.Managing)
           running(ctx, fireStations, rainGauges, views)
-        case AddRainGauge() =>
-          ctx.log.info(" ==== Add rain gauge ==== ")
+        case AddRainGauge(newGauge) =>
+          ctx.log.info(s"Added rain gauge to zone ${newGauge.zoneID}")
+          zoneList(newGauge.zoneID).rainGauges :+ newGauge
+          running(ctx, fireStations, rainGauges, views)
+        case AddFireStation(newStation) =>
+          ctx.log.info(s"Added firestation to zone ${newStation.zoneID}")
+          zoneList(newStation.zoneID).fireStation = newStation
           running(ctx, fireStations, rainGauges, views)
         case FireStationBusy(zoneID) => 
           ctx.log.info(s"Fire station $zoneID is Busy")
