@@ -37,6 +37,7 @@ object ViewActor:
       }
       ctx.system.receptionist ! Receptionist.Subscribe(FireStationServiceKey, subscriptionAdapter)
       ctx.system.receptionist ! Receptionist.Subscribe(RainGaugeActor.RainGaugeServiceKey, subscriptionAdapter)
+      ctx.system.receptionist ! Receptionist.Register(ViewActorServiceKey, ctx.self)
       running(ctx, IndexedSeq.empty, IndexedSeq.empty, view)
     }
 

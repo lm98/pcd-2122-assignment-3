@@ -42,7 +42,8 @@ object FireStationActor:
                       fireStation: FireStation): Behavior[FireStationActor.Event] =
     Behaviors receiveMessage { msg => msg match
       case ViewActorsUpdated(newSet) =>
-        newSet.foreach( s => s ! ViewActor.UpdateStation(fireStation))
+        println(s" ===== $fireStation")
+        newSet foreach { _ ! ViewActor.AddFireStation(fireStation) }
         ctx.log.info(s"Views have been updated to ${newSet.size}")
         running(ctx, rainGauges, newSet.toIndexedSeq, alarmNotifications, fireStation)
       case ZoneRequestRainGaugeToFireStation(originZone, rainGauge) =>
