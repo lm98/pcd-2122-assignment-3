@@ -31,21 +31,23 @@ object FireStationActor:
 
         timers.startTimerWithFixedDelay(Tick(), Tick(), 10.seconds)
 
-        running(ctx, Set.empty, IndexedSeq.empty, 0, fireStation)
+        running(ctx, Set.empty, Set.empty, 0, fireStation)
       }
     }
 
   private def running(ctx: ActorContext[Event],
                       rainGauges: Set[ActorRef[RainGaugeActor.Event]],
-                      viewActors: IndexedSeq[ActorRef[ViewActor.Event]],
+                      viewActors: Set[ActorRef[ViewActor.Event]],
                       alarmNotifications: Int,
                       fireStation: FireStation): Behavior[FireStationActor.Event] =
     Behaviors receiveMessage { msg => msg match
       case ViewActorsUpdated(newSet) =>
-        println(s" ===== $fireStation")
-        newSet foreach { _ ! ViewActor.AddFireStation(fireStation) }
+        newSet foreach {
+          println(s" ===== $fireStation")
+          _ ! ViewActor.AddFireStation(fireStation)
+        }
         ctx.log.info(s"Views have been updated to ${newSet.size}")
-        running(ctx, rainGauges, newSet.toIndexedSeq, alarmNotifications, fireStation)
+        running(ctx, rainGauges, newSet, alarmNotifications, fireStation)
       case ZoneRequestRainGaugeToFireStation(originZone, rainGauge) =>
         if originZone == fireStation.zoneID then
           rainGauge ! RainGaugeActor.ZoneRequestFireStationToRainGauge(ctx.self)
@@ -66,13 +68,13 @@ object FireStationActor:
 
   private def warned(ctx: ActorContext[Event],
                       rainGauges: Set[ActorRef[RainGaugeActor.Event]],
-                      viewActors: IndexedSeq[ActorRef[ViewActor.Event]],
+                      viewActors: Set[ActorRef[ViewActor.Event]],
                      fireStation: FireStation): Behavior[FireStationActor.Event] =
     Behaviors receiveMessage { msg => msg match
       case ViewActorsUpdated(newSet) =>
         newSet foreach { _ ! ViewActor.AddFireStation(fireStation) }
         ctx.log.info(s"Views have been updated to ${newSet.size}")
-        warned(ctx, rainGauges, newSet.toIndexedSeq, fireStation)
+        warned(ctx, rainGauges, newSet, fireStation)
       case ManageAlarm(zoneID) =>
         if(zoneID == fireStation.zoneID)
           ctx.log.info(s"Firestation #${fireStation.zoneID} Going to manage the alarm")
@@ -86,13 +88,13 @@ object FireStationActor:
     
   private def busy(ctx: ActorContext[Event],
                    rainGauges: Set[ActorRef[RainGaugeActor.Event]],
-                   viewActors: IndexedSeq[ActorRef[ViewActor.Event]],
+                   viewActors: Set[ActorRef[ViewActor.Event]],
                    fireStation: FireStation): Behavior[FireStationActor.Event] =
     Behaviors receiveMessage { msg => msg match
       case ViewActorsUpdated(newSet) =>
         newSet foreach { _ ! ViewActor.AddFireStation(fireStation) }
         ctx.log.info(s"Views have been updated to ${newSet.size}")
-        busy(ctx, rainGauges, newSet.toIndexedSeq, fireStation)
+        busy(ctx, rainGauges, newSet, fireStation)
       case Tick() =>
         ctx.log.info(s"Firestation #${fireStation.zoneID} Alarm managed")
         fireStation.changeState(FireStationState.Free)

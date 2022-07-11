@@ -20,7 +20,6 @@ object App:
       val cluster = Cluster(ctx.system)
       zoneList = zones
       val rainGaugesNumber = ctx.system.settings.config.getInt("rain-analysis.rainGaugesPerNode")
-      val zoneNumber = ctx.system.settings.config.getInt("rain-analysis.nodesNumber")
       var gaugeIDs = ctx.system.settings.config.getInt("rain-analysis.rainGaugesNumber")
       cluster.selfMember.roles.head match
         case "rainGauge" =>
@@ -60,16 +59,11 @@ object App:
       Zone(id, ZoneState.Ok, bounds)
     zones.toList
 
-  /*def initRainGauges(zoneID: Int, bounds: RectangleBounds): List[RainGauge] =
-    val gauges = for _ <- 0 until 3 yield
-      RainGauge(zoneID, Point2D().createRandom(bounds.topLeft.x + defPaddingValue, bounds.bottomRight.x - defPaddingValue, bounds.topLeft.y + defPaddingValue, bounds.bottomRight.y - defPaddingValue))
-    gauges.toList*/
-
   def main(args: Array[String]): Unit =
     val zoneList = initZones()
     if args.isEmpty then
       startup("viewActor", 25251, zoneList)
-//      startup("viewActor", 25253, zoneList)
+      startup("viewActor", 25253, zoneList)
       startup("rainGauge", 4000, zoneList)
       startup("fireStation", 25252, zoneList)
       //      startup("rainGauge", 25251)

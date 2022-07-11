@@ -36,7 +36,7 @@ class AppView(var zones: List[Zone], var fireStations: List[FireStation], var ra
       buttonsPanel.display()
       repaint()
     )
-  def updateFireStationsState(fs: FireStation): Unit = 
+  def updateFireStationsState(fs: FireStation): Unit =
     fireStations = fireStations.filterNot( f => f.pos.equals(fs.pos))
     updateStations(fs)
   def updateRainGauges(rainGauge: RainGauge): Unit =
@@ -87,7 +87,7 @@ class AppView(var zones: List[Zone], var fireStations: List[FireStation], var ra
       val rainGaugesNumber: Int = rainGauges.count( _.zoneID == zone.id)
       val fireStationsStates = fireStations.filter( f => f.zoneID.equals(zone.id)).map(f => f.state)
       textAreas = textAreas.+((zone.id, new TextField(){
-        text = s"Zone ${zone.id}\tRain gauges = $rainGaugesNumber\tStatus: ${zone.state.toString}\tFire Station: $fireStationsStates"
+        text = s"Zone ${zone.id} -- Rain gauges = $rainGaugesNumber -- Status: ${zone.state.toString} -- Fire Station: $fireStationsStates"
         editable = false
         preferredSize = Dimension(50,50)
       }))
@@ -106,7 +106,7 @@ class AppView(var zones: List[Zone], var fireStations: List[FireStation], var ra
       zones.foreach(zone =>
         val fireStationsStates = fireStations.filter( f => f.zoneID.equals(zone.id)).map(f => f.state)
         val rainGaugesNumber: Int = rainGauges.count( _.zoneID == zone.id)
-        textAreas(zone.id).text = s"Zone ${zone.id}\tRain gauges = $rainGaugesNumber\tStatus: ${zone.state.toString}\tFire Station: $fireStationsStates"
+        textAreas(zone.id).text = s"Zone ${zone.id} -- Rain gauges = $rainGaugesNumber -- Status: ${zone.state.toString} -- Fire Station: $fireStationsStates"
         zone.state match
           case ZoneState.Ok =>
             buttons(zone.id).enabled = false;

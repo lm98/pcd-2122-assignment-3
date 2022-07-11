@@ -1,5 +1,7 @@
 package model
 
+import cluster.CborSerializable
+
 import scala.annotation.targetName
 import scala.util.Random
 
@@ -12,9 +14,9 @@ enum ZoneState:
   case Alarm
   case Managing
 
-enum FireStationState:
-  case Free
-  case Busy
+object FireStationState extends Enumeration:
+  type FireStationState = Value
+  val Free, Busy, Warned = Value
 
 case class RainGauge(zoneID: Int, pos: Point2D)
 
@@ -38,5 +40,6 @@ case class Point2D(var x: Int = 0, var y: Int = 0):
       y = rand.between(by, bx + 1)
     Point2D(x, y)
 
+import FireStationState.*
 case class FireStation(zoneID: Int, var state: FireStationState, pos: Point2D):
   def changeState(newState: FireStationState): Unit = state = newState
