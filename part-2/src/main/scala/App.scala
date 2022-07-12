@@ -13,38 +13,13 @@ import scala.util.Random
 
 object App:
   val defPaddingValue: Int = 10
-  var zoneList: List[Zone] = List.empty
 
-  object RootBehavior:
-    def apply(zones: List[Zone]): Behavior[Nothing] = Behaviors.setup[Nothing] { ctx =>
-      val cluster = Cluster(ctx.system)
-      zoneList = zones
-      val rainGaugesNumber = ctx.system.settings.config.getInt("rain-analysis.rainGaugesPerNode")
-      var gaugeIDs = ctx.system.settings.config.getInt("rain-analysis.rainGaugesNumber")
-      cluster.selfMember.roles.head match
-        case "rainGauge" =>
-          zoneList foreach { z =>
-            (0 until rainGaugesNumber) foreach { _ =>
-              val newGauge = RainGauge(z.id, Point2D().createRandom(z.bounds.topLeft.x + defPaddingValue, z.bounds.bottomRight.x - defPaddingValue, z.bounds.topLeft.y + defPaddingValue, z.bounds.bottomRight.y - defPaddingValue))
-              ctx.spawn(RainGaugeActor(newGauge), s"RainGauge$gaugeIDs")
-              gaugeIDs = gaugeIDs - 1
-            }
-          }
-        case "fireStation" => zoneList foreach { z =>
-          val newStation = FireStation(z.id, FireStationState.Free, Point2D().createRandom(z.bounds.topLeft.x + defPaddingValue, z.bounds.bottomRight.x - defPaddingValue, z.bounds.topLeft.y + defPaddingValue, z.bounds.bottomRight.y - defPaddingValue))
-          ctx.spawn(FireStationActor(newStation), s"FireStation${z.id}")
-        }
-        case "viewActor" => ctx.spawn(ViewActor(zoneList), "ViewActor")
-      Behaviors.empty
-    }
-
-  def startup(role: String, port: Int, zoneList: List[Zone]): Unit =
+  def startup[T](port: Int)(root: => Behavior[T]): Unit =
     val config = ConfigFactory.parseString(s"""
            akka.remote.artery.canonical.port=$port
-           akka.cluster.roles = [$role]
            """)
       .withFallback(ConfigFactory.load("rain-analysis"))
-    ActorSystem[Nothing](RootBehavior(zoneList), "ClusterSystem", config)
+    ActorSystem[T](root, "ClusterSystem", config)
 
   def initZones(): List[Zone] =
     val rows: Int = 2
@@ -60,14 +35,17 @@ object App:
     zones.toList
 
   def main(args: Array[String]): Unit =
-    val zoneList = initZones()
-    if args.isEmpty then
-      startup("viewActor", 25251, zoneList)
-      startup("viewActor", 25253, zoneList)
-      startup("rainGauge", 4000, zoneList)
-      startup("fireStation", 25252, zoneList)
-      //      startup("rainGauge", 25251)
-      //      startup("rainGauge", 3001)
-    else
-      require(args.length == 2, "Usage: role port")
-      startup(args(0), args(1).toInt, zoneList)
+    val zones = initZones()
+    var port = 25251
+    zones foreach { z =>
+      (0 until 3) foreach { _ =>
+        val newGauge = RainGauge(z.id, Point2D().createRandom(z.bounds.topLeft.x + defPaddingValue, z.bounds.bottomRight.x - defPaddingValue, z.bounds.topLeft.y + defPaddingValue, z.bounds.bottomRight.y - defPaddingValue))
+        startup(port)(RainGaugeActor(newGauge))
+        port = port + 1
+      }
+      val newStation = FireStation(z.id, FireStationState.Free, Point2D().createRandom(z.bounds.topLeft.x + defPaddingValue, z.bounds.bottomRight.x - defPaddingValue, z.bounds.topLeft.y + defPaddingValue, z.bounds.bottomRight.y - defPaddingValue))
+      startup(port)(FireStationActor(newStation))
+      port = port +1
+    }
+    startup(port)(ViewActor(zones))
+    startup(port + 1)(ViewActor(zones))

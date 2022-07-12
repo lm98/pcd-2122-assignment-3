@@ -34,7 +34,7 @@ object RainGaugeActor:
   private case class ViewUpdated(value: Set[ActorRef[ViewActor.Event]]) extends Event with CborSerializable
 
   val RainGaugeServiceKey: ServiceKey[RainGaugeActor.Event] = ServiceKey[RainGaugeActor.Event]("RainGauge")
-  val ALARM_THRESHOLD = 0.60
+  val ALARM_THRESHOLD = 0.80
 
   def apply(rainGauge: RainGauge): Behavior[Event] =
     Behaviors setup { ctx =>
