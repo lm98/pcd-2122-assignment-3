@@ -54,7 +54,7 @@ object FireStationActor:
       case NotifyAlarmOn() =>
         val notifications = alarmNotifications + 1
         ctx.log.info(s"Firestation #${fireStation.zoneID} Received $notifications notifications")
-        if notifications >= rainGauges.size then
+        if notifications >= (rainGauges.size/2 + 1) then
           ctx.log.info(s"Firestation #${fireStation.zoneID} Warned")
           viewActors foreach { _ ! ViewActor.AlarmOn(fireStation.zoneID) }
           warned(ctx, rainGauges, viewActors, fireStation)
