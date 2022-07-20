@@ -72,8 +72,8 @@ object ViewActor:
           view.updateStations(newStation)
           running(ctx, fireStations, rainGauges, view)
         case UpdateStation(fireStation) =>
-          ctx.log.info(s"Fire station ${fireStation.zoneID} is Busy")
-          view.updateFireStationsState(fireStation)
+          ctx.log.info(s"Fire station ${fireStation.zoneID} is ${fireStation.state}")
+          view.updateStations(fireStation)
           running(ctx, fireStations, rainGauges, view)
     }
 

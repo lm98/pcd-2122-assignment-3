@@ -31,21 +31,23 @@ class AppView(var zones: List[Zone], var fireStations: List[FireStation], var ra
     override def windowClosing(ev: WindowEvent): Unit = System.exit(-1)
     override def windowClosed(ev: WindowEvent): Unit = System.exit(-1)
   })
+
   def updateStations(fs: FireStation): Unit =
+    fireStations = fireStations.filterNot(_.pos == fs.pos)
+    fireStations = fireStations :+ fs
     SwingUtilities.invokeLater( () =>
-      fireStations = fireStations :+ fs
       buttonsPanel.display()
       repaint()
     )
-  def updateFireStationsState(fs: FireStation): Unit =
-    fireStations = fireStations.filterNot( f => f.pos.equals(fs.pos))
-    updateStations(fs)
+
   def updateRainGauges(rainGauge: RainGauge): Unit =
+    rainGauges = rainGauges.filterNot(_.pos == rainGauge.pos)
+    rainGauges = rainGauges :+ rainGauge
     SwingUtilities.invokeLater( () =>
-      rainGauges = rainGauges :+ rainGauge
       buttonsPanel.display()
       repaint()
     )
+
   def updateGui(zs: List[Zone]): Unit =
     SwingUtilities.invokeLater(() =>
       zones = zs
