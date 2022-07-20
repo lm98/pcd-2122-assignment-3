@@ -27,10 +27,10 @@ object ViewActor:
 
   val ViewActorServiceKey: ServiceKey[ViewActor.Event] = ServiceKey[ViewActor.Event]("ViewService")
   var zoneList: List[Zone] = List()
-  def apply(zones: List[Zone]): Behavior[ViewActor.Event] =
+  def apply(zones: List[Zone], rows: Int, cols: Int): Behavior[ViewActor.Event] =
     Behaviors setup { ctx =>
       zoneList = zones
-      val view = AppView(zoneList, List.empty, List.empty, ctx.self)
+      val view = AppView(zoneList, List.empty, List.empty, ctx.self, rows, cols)
       val subscriptionAdapter = ctx.messageAdapter[Receptionist.Listing] {
         case FireStationServiceKey.Listing(fireStations) => FireStationsUpdated(fireStations)
         case RainGaugeActor.RainGaugeServiceKey.Listing(newGauge) => RainGaugesUpdated(newGauge)

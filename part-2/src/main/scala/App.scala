@@ -21,9 +21,7 @@ object App:
       .withFallback(ConfigFactory.load("rain-analysis"))
     ActorSystem[T](root, "ClusterSystem", config)
 
-  def initZones(): List[Zone] =
-    val rows: Int = 2
-    val cols: Int = 3
+  def initZones(rows: Int = 2, cols: Int = 3): List[Zone] =
     var id: Int = 0
     val zones = for
       r <- 0 until rows
@@ -35,7 +33,9 @@ object App:
     zones.toList
 
   def main(args: Array[String]): Unit =
-    val zones = initZones()
+    val rows: Int = 3
+    val cols: Int = 4
+    val zones = initZones(rows, cols)
     var port = 25251
     zones foreach { z =>
       (0 until 3) foreach { _ =>
@@ -47,5 +47,5 @@ object App:
       startup(port)(FireStationActor(newStation))
       port = port +1
     }
-    startup(port)(ViewActor(zones))
-    startup(port + 1)(ViewActor(zones))
+    startup(port)(ViewActor(zones, rows, cols))
+//    startup(port + 1)(ViewActor(zones))

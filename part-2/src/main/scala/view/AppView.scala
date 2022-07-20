@@ -8,21 +8,22 @@ import scala.util.Random
 import com.sun.java.accessibility.util.AWTEventMonitor.{addActionListener, addWindowListener}
 
 import java.awt.event.{WindowAdapter, WindowEvent}
-import java.awt.{Dimension, Graphics2D, RenderingHints, TextArea}
-import javax.swing.{BorderFactory, SwingUtilities}
+import java.awt.{ComponentOrientation, Dimension, Graphics2D, RenderingHints, TextArea}
+import javax.swing.{BorderFactory, JScrollPane, SwingUtilities}
 import scala.language.postfixOps
 import scala.swing.*
 import scala.swing.Action.NoAction.enabled
 import scala.swing.BorderPanel.Position.*
 
-class AppView(var zones: List[Zone], var fireStations: List[FireStation], var rainGauges: List[RainGauge], viewActor: ActorRef[ViewActor.Event], width: Int = 820, height: Int = 520) extends Frame:
+class AppView(var zones: List[Zone], var fireStations: List[FireStation], var rainGauges: List[RainGauge], viewActor: ActorRef[ViewActor.Event], val rows: Int, val cols: Int, width: Int = 820, height: Int = 520) extends Frame:
   val cityPanel: CityPanel = new CityPanel
   val buttonsPanel: ManagePanel = new ManagePanel
+  val scrollArea: ScrollPane = new ScrollPane(buttonsPanel)
   size = Dimension(width + 100, height + 100)
   title = "Zones with rain detector"
   contents = new BorderPanel{
     layout(cityPanel) = North
-    layout(buttonsPanel) = Center
+    layout(scrollArea) = Center
   }
   resizable = true
   visible = true
@@ -53,7 +54,7 @@ class AppView(var zones: List[Zone], var fireStations: List[FireStation], var ra
     )
 
   class CityPanel extends Panel:
-    preferredSize = Dimension(600,300)
+    preferredSize = Dimension(cols * Costants.defalutWidth,rows * Costants.defaultHeight)
 
     override def paint(g: Graphics2D): Unit =
       val g2: Graphics2D = g
@@ -82,7 +83,7 @@ class AppView(var zones: List[Zone], var fireStations: List[FireStation], var ra
   sealed class ManagePanel extends BoxPanel(Orientation.Vertical):
     var buttons: Map[Int, Button] = Map()
     var textAreas: Map[Int, TextField] = Map()
-    preferredSize = Dimension(600,400)
+//    preferredSize = Dimension(cols * Costants.defalutWidth, rows * cols * 50)
     zones.foreach(zone => {
       val rainGaugesNumber: Int = rainGauges.count( _.zoneID == zone.id)
       val fireStationsStates = fireStations.filter( f => f.zoneID.equals(zone.id)).map(f => f.state)
