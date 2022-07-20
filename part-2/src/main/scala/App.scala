@@ -33,10 +33,20 @@ object App:
     zones.toList
 
   def main(args: Array[String]): Unit =
-    val rows: Int = 3
-    val cols: Int = 4
-    val zones = initZones(rows, cols)
     var port = 25251
+    var zones = List.empty[Zone]
+    var nViews = 2
+    var cols: Int = 3
+    var rows: Int = 2
+
+    if args.isEmpty then
+      zones = initZones(rows, cols)
+    else
+      rows = args(0).toInt
+      cols = args(1).toInt
+      zones = initZones(rows, cols)
+      nViews = args(2).toInt
+
     zones foreach { z =>
       (0 until 3) foreach { _ =>
         val newGauge = RainGauge(z.id, Point2D().createRandom(z.bounds.topLeft.x + defPaddingValue, z.bounds.bottomRight.x - defPaddingValue, z.bounds.topLeft.y + defPaddingValue, z.bounds.bottomRight.y - defPaddingValue))
@@ -47,5 +57,7 @@ object App:
       startup(port)(FireStationActor(newStation))
       port = port +1
     }
-    startup(port)(ViewActor(zones, rows, cols))
-//    startup(port + 1)(ViewActor(zones))
+    (0 until nViews) foreach { _ =>
+      startup(port)(ViewActor(zones, rows, cols))
+      port = port + 1
+    }
