@@ -35,12 +35,12 @@ object App:
   def main(args: Array[String]): Unit =
     var port = 25251
     var zones = List.empty[Zone]
-    var nViews = 2
+    var nViews = 1
     var cols: Int = 3
     var rows: Int = 2
 
     if args.isEmpty then
-      zones = initZones(rows, cols)
+      zones = initZones()
     else
       rows = args(0).toInt
       cols = args(1).toInt

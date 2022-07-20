@@ -64,10 +64,12 @@ class AppView(var zones: List[Zone], var fireStations: List[FireStation], var ra
       g2 setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
       g2 setColor java.awt.Color.BLACK
       zones.foreach(zone => {
-        zone.state match
-          case ZoneState.Ok => g2.setColor(java.awt.Color.GREEN)
-          case ZoneState.Alarm => g2.setColor(java.awt.Color.RED)
-          case ZoneState.Managing => g2.setColor(java.awt.Color.CYAN)
+        fireStations.filter(fs => fs.zoneID.equals(zone.id)).foreach(fs =>
+          fs.state match
+            case FireStationState.Free => g2.setColor(java.awt.Color.GREEN)
+            case FireStationState.Busy => g2.setColor(java.awt.Color.CYAN)
+            case FireStationState.Warned => g2.setColor(java.awt.Color.RED)
+        )
         g2 fillRect(zone.bounds.topLeft.x, zone.bounds.topLeft.y, zone.bounds.width, zone.bounds.height)
         g2 setColor java.awt.Color.BLACK
         g2 drawRect(zone.bounds.topLeft.x, zone.bounds.topLeft.y, zone.bounds.width, zone.bounds.height)
