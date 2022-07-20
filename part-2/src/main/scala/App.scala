@@ -21,9 +21,7 @@ object App:
       .withFallback(ConfigFactory.load("rain-analysis"))
     ActorSystem[T](root, "ClusterSystem", config)
 
-  def initZones(): List[Zone] =
-    val rows: Int = 2
-    val cols: Int = 3
+  def initZones(rows: Int = 2, cols: Int = 3): List[Zone] =
     var id: Int = 0
     val zones = for
       r <- 0 until rows
@@ -35,8 +33,16 @@ object App:
     zones.toList
 
   def main(args: Array[String]): Unit =
-    val zones = initZones()
     var port = 25251
+    var zones = List.empty[Zone]
+    var nViews = 2
+
+    if args.isEmpty then
+      zones = initZones()
+    else
+      zones = initZones(args(0).toInt, args(1).toInt)
+      nViews = args(2).toInt
+
     zones foreach { z =>
       (0 until 3) foreach { _ =>
         val newGauge = RainGauge(z.id, Point2D().createRandom(z.bounds.topLeft.x + defPaddingValue, z.bounds.bottomRight.x - defPaddingValue, z.bounds.topLeft.y + defPaddingValue, z.bounds.bottomRight.y - defPaddingValue))
@@ -47,5 +53,7 @@ object App:
       startup(port)(FireStationActor(newStation))
       port = port +1
     }
-    startup(port)(ViewActor(zones))
-    startup(port + 1)(ViewActor(zones))
+    (0 until nViews) foreach { _ =>
+      startup(port)(ViewActor(zones))
+      port = port + 1
+    }
