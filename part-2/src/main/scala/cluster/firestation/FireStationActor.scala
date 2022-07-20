@@ -57,6 +57,8 @@ object FireStationActor:
         if notifications >= (rainGauges.size/2 + 1) then
           ctx.log.info(s"Firestation #${fireStation.zoneID} Warned")
           viewActors foreach { _ ! ViewActor.AlarmOn(fireStation.zoneID) }
+          fireStation.changeState(FireStationState.Warned)
+          viewActors foreach { _ ! ViewActor.UpdateStation(fireStation) }
           warned(ctx, rainGauges, viewActors, fireStation)
         else
           running(ctx, rainGauges, viewActors, notifications, fireStation)
